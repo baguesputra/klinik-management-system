@@ -1,0 +1,35 @@
+ # Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Prisma
+prisma/migrations/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# Build
+dist/
+build/
+
+# Coverage
+coverage/
+
+# Docker volumes
+postgres_data/
+redis_data/
+/src/generated/prisma
