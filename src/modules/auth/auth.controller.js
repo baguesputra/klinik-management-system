@@ -1,6 +1,7 @@
 // src/modules/auth/auth.controller.js
 import { authService } from './auth.service.js';
 import { ApiResponse } from '../../utils/ApiResponse.js';
+import { env } from '../../config/env.js';
 
 export class AuthController {
   async register(req, res, next) {
@@ -51,6 +52,30 @@ export class AuthController {
       next(err);
     }
   }
+
+  async googleCallback(req, res, next) {
+    try {
+        const user = req.user; // dari passport
+        const { accessToken, refreshToken } = await authService.handleOAuthLogin(user);
+
+        // Redirect ke frontend dengan token di query params
+        // Frontend akan ambil token ini dan simpan di localStorage/cookie
+        const redirectUrl = new URL(`${env.FRONTEND_URL}/auth/callback`);
+        redirectUrl.searchParams.set('accessToken', accessToken);
+        redirectUrl.searchParams.set('refreshToken', refreshToken);
+
+        return res.redirect(redirectUrl.toString());
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    async googleCallbackFailure(req, res) {
+        return res.status(401).json({
+            success: false,
+            message: 'Google authentication failed',
+        });
+    }
 }
 
 export const authController = new AuthController();

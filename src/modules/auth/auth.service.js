@@ -150,6 +150,21 @@ export class AuthService {
     if (!user) throw ApiError.notFound('User not found');
     return user;
   }
+
+async handleOAuthLogin(user) {
+  const payload = { sub: user.id, role: user.role };
+  const accessToken = generateAccessToken(payload);
+  const refreshToken = generateRefreshToken(payload);
+
+    // Simpan refresh token di Redis
+    await redis.setex(
+        `${REFRESH_TOKEN_PREFIX}${user.id}`,
+        REFRESH_TOKEN_TTL,
+        refreshToken
+    );
+
+    return { accessToken, refreshToken };
+    }
 }
 
 export const authService = new AuthService();

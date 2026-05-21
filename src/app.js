@@ -3,6 +3,7 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
+import passport from './config/passport.js'; 
 import { errorHandler } from './middlewares/errorHandler.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import { env } from './config/env.js';
@@ -15,6 +16,7 @@ app.use(cors({ origin: env.APP_URL, credentials: true }));
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(passport.initialize()); 
 
 // Health check
 app.get('/health', (req, res) => {
