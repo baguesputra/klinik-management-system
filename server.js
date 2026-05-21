@@ -11,7 +11,7 @@ const start = async () => {
     await prisma.$connect();
     console.log('✅ Database connected');
 
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0',() => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📄 Swagger docs: http://localhost:${PORT}/api-docs`);
       console.log(`🌍 Environment: ${env.NODE_ENV}`);

@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import passport from './config/passport.js'; 
 import { errorHandler } from './middlewares/errorHandler.js';
 import authRoutes from './modules/auth/auth.routes.js';
+import usersRoutes from './modules/users/users.routes.js';
 import { env } from './config/env.js';
 
 const app = express();
@@ -25,7 +26,7 @@ app.get('/health', (req, res) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
-
+app.use('/api/users', usersRoutes);
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' });
