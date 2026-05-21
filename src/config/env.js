@@ -12,7 +12,7 @@ const envSchema = z.object({
 
   DATABASE_URL: z.string().url(),
 
-  REDIS_HOST: z.string(),
+  REDIS_HOST: z.string(), 
   REDIS_PORT: z.string().default('6379'),
   REDIS_PASSWORD: z.string(),
 
