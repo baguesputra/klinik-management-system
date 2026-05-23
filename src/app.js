@@ -8,6 +8,7 @@ import { errorHandler } from './middlewares/errorHandler.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import usersRoutes from './modules/users/users.routes.js';
 import patientsRoutes from './modules/patients/patients.routes.js';
+import doctorsRoutes from './modules/doctors/doctors.routes.js';
 import { env } from './config/env.js';
 
 const app = express();
@@ -29,6 +30,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/patients', patientsRoutes);
+app.use('/api/doctors', doctorsRoutes);
 
 // 404 handler
 app.use((req, res) => {
