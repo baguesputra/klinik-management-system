@@ -285,7 +285,7 @@ appointments ──── billings ──── payments
 | Phase 2 | JWT Auth — Register, Login, Refresh, Logout | ✅ Done |
 | Phase 3 | Google OAuth2 | ✅ Done |
 | Phase 4 | RBAC + User Management + Seed Data | ✅ Done |
-| Phase 5 | Patient Management & Medical Records | 🔄 In Progress |
+| Phase 5 | Patient Management & Medical Records | ✅ Done |
 | Phase 6 | Doctor Profiles, Appointments & Queue | ⏳ Pending |
 | Phase 7 | Medicine Inventory & Stock | ⏳ Pending |
 | Phase 8 | Prescriptions & Dispensing | ⏳ Pending |
