@@ -9,13 +9,28 @@ import {
   refreshSchema,
 } from './auth.validator.js';
 import { authenticate } from '../../middlewares/auth.middleware.js';
+import { loginLimiter, registerLimiter, refreshLimiter } from '../../middlewares/rateLimiter.js';
 
 const router = Router();
 
 // ── Local Auth ────────────────────────────────────────
-router.post('/register', validate(registerSchema), authController.register.bind(authController));
-router.post('/login', validate(loginSchema), authController.login.bind(authController));
-router.post('/refresh', validate(refreshSchema), authController.refresh.bind(authController));
+router.post('/register',
+  registerLimiter,
+  validate(registerSchema),
+  authController.register.bind(authController)
+);
+
+router.post('/login',
+  loginLimiter,
+  validate(loginSchema),
+  authController.login.bind(authController)
+);
+
+router.post('/refresh',
+  refreshLimiter,
+  validate(refreshSchema),
+  authController.refresh.bind(authController)
+);
 router.post('/logout', authenticate, authController.logout.bind(authController));
 router.get('/me', authenticate, authController.getMe.bind(authController));
 

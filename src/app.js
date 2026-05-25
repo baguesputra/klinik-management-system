@@ -13,6 +13,7 @@ import appointmentsRoutes from './modules/appointments/appointments.routes.js';
 import medicinesRoutes from './modules/medicines/medicines.routes.js';
 import prescriptionsRoutes from './modules/prescriptions/prescriptions.routes.js';
 import billingsRoutes from './modules/billings/billings.routes.js';
+import { globalLimiter } from './middlewares/rateLimiter.js';
 import { env } from './config/env.js';
 
 const app = express();
@@ -24,6 +25,8 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize()); 
+// Rate limiting
+app.use(globalLimiter);
 
 // Health check
 app.get('/health', (req, res) => {

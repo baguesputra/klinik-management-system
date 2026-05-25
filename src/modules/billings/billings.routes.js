@@ -12,6 +12,7 @@ import {
   voidRequestSchema,
   reviewVoidSchema,
 } from './billings.validator.js';
+import { sensitiveLimiter } from '../../middlewares/rateLimiter.js';
 
 const router = Router();
 
@@ -19,17 +20,17 @@ router.use(authenticate);
 
 // @route   GET /api/billings/report/daily
 // @access  SUPER_ADMIN, KASIR, ADMIN_KLINIK
-router.get(
-  '/report/daily',
+router.get('/report/daily',
   authorize('SUPER_ADMIN', 'ADMIN_KLINIK', 'KASIR'),
+  sensitiveLimiter,
   billingsController.getDailyReport.bind(billingsController)
 );
 
 // @route   GET /api/billings/report/monthly
 // @access  SUPER_ADMIN, KASIR, ADMIN_KLINIK
-router.get(
-  '/report/monthly',
+router.get('/report/monthly',
   authorize('SUPER_ADMIN', 'ADMIN_KLINIK', 'KASIR'),
+  sensitiveLimiter,
   billingsController.getMonthlyReport.bind(billingsController)
 );
 
@@ -59,9 +60,9 @@ router.get(
 
 // @route   GET /api/billings/:id/pdf
 // @access  SUPER_ADMIN, KASIR, PASIEN
-router.get(
-  '/:id/pdf',
+router.get('/:id/pdf',
   authorize('SUPER_ADMIN', 'KASIR', 'PASIEN'),
+  sensitiveLimiter,
   billingsController.downloadPdf.bind(billingsController)
 );
 
