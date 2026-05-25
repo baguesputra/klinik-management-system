@@ -7,6 +7,7 @@ import {
   validate,
   createPrescriptionSchema,
   updatePrescriptionSchema,
+  dispenseSchema,
 } from './prescriptions.validator.js';
 
 const router = Router();
@@ -76,6 +77,7 @@ router.patch(
 router.patch(
   '/:id/dispense',
   authorize('APOTEKER', 'SUPER_ADMIN'),
+  validate(dispenseSchema),
   prescriptionsController.dispense.bind(prescriptionsController)
 );
 

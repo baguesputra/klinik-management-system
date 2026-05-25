@@ -61,7 +61,10 @@ export class PrescriptionsController {
 
   async dispense(req, res, next) {
     try {
-      const prescription = await prescriptionsService.dispense(req.params.id);
+      const prescription = await prescriptionsService.dispense(
+        req.params.id,
+        req.body.items
+      );
       return ApiResponse.success(res, prescription, 'Prescription dispensed successfully');
     } catch (err) { next(err); }
   }

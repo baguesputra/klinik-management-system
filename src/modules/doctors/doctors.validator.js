@@ -12,11 +12,23 @@ const TimeString = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid time f
 // Schedule: { monday: ["08:00", "16:00"], ... }
 // Tiap hari harus punya tepat 2 elemen [jamBuka, jamTutup]
 // jamBuka harus lebih awal dari jamTutup
-const ScheduleSchema = z.record(DayEnum, z.tuple([TimeString, TimeString]))
-  .refine(
-    (schedule) => Object.values(schedule).every(([open, close]) => open < close),
-    { message: 'Opening time must be earlier than closing time' }
-  );
+const DaySchedule = z.tuple([TimeString, TimeString]).refine(
+  ([open, close]) => open < close,
+  { message: 'Opening time must be earlier than closing time' }
+);
+
+const ScheduleSchema = z.object({
+  monday: DaySchedule,
+  tuesday: DaySchedule,
+  wednesday: DaySchedule,
+  thursday: DaySchedule,
+  friday: DaySchedule,
+  saturday: DaySchedule,
+  sunday: DaySchedule,
+}).partial().refine(
+  (schedule) => Object.keys(schedule).length > 0,
+  { message: 'Schedule must have at least one day' }
+);
 
 export const createDoctorSchema = z.object({
   userId: z.string().uuid('Invalid user ID'),

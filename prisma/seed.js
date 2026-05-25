@@ -9,7 +9,9 @@ const hashPassword = (password) => bcrypt.hash(password, 12);
 async function main() {
   console.log('🌱 Seeding database...');
 
-  // ── Bersihkan data lama ──────────────────────────────
+  // ── Bersihkan data lama (urutan penting — child dulu) ─
+  await prisma.paymentVoidRequest.deleteMany();
+  await prisma.payment.deleteMany();
   await prisma.auditLog.deleteMany();
   await prisma.billing.deleteMany();
   await prisma.prescriptionItem.deleteMany();
@@ -24,7 +26,7 @@ async function main() {
 
   console.log('🗑️  Cleared existing data');
 
-  // ── Users ────────────────────────────────────────────
+  // ── Users ─────────────────────────────────────────────
   const users = await Promise.all([
     prisma.user.create({
       data: {
@@ -96,27 +98,28 @@ async function main() {
 
   console.log(`✅ Created ${users.length} users`);
 
-  // ── Doctor Profile ───────────────────────────────────
+  // ── Doctor Profile ────────────────────────────────────
   const doctorUser = users.find((u) => u.role === 'DOKTER');
-  const doctor = await prisma.doctor.create({
+  await prisma.doctor.create({
     data: {
       userId: doctorUser.id,
       specialization: 'Dokter Umum',
       licenseNumber: 'STR-001-2024',
+      consultFee: 150000,
       schedule: {
-        senin: { open: '08:00', close: '12:00' },
-        selasa: { open: '08:00', close: '12:00' },
-        rabu: { open: '08:00', close: '12:00' },
-        kamis: { open: '08:00', close: '12:00' },
-        jumat: { open: '08:00', close: '11:00' },
-        sabtu: { open: '08:00', close: '10:00' },
+        monday:    ['08:00', '12:00'],
+        tuesday:   ['08:00', '12:00'],
+        wednesday: ['08:00', '12:00'],
+        thursday:  ['08:00', '12:00'],
+        friday:    ['08:00', '11:00'],
+        saturday:  ['08:00', '10:00'],
       },
     },
   });
 
   console.log('✅ Created doctor profile');
 
-  // ── Patient Profile ──────────────────────────────────
+  // ── Patient Profile ───────────────────────────────────
   const patientUser = users.find((u) => u.role === 'PASIEN');
   await prisma.patient.create({
     data: {
@@ -132,8 +135,8 @@ async function main() {
 
   console.log('✅ Created patient profile');
 
-  // ── Medicines ────────────────────────────────────────
-  const medicines = await prisma.medicine.createMany({
+  // ── Medicines ─────────────────────────────────────────
+  await prisma.medicine.createMany({
     data: [
       {
         name: 'Paracetamol 500mg',
@@ -144,6 +147,7 @@ async function main() {
         stock: 500,
         minStock: 50,
         description: 'Obat penurun demam dan pereda nyeri',
+        expiryDate: new Date('2027-12-31'),
       },
       {
         name: 'Amoxicillin 500mg',
@@ -154,6 +158,7 @@ async function main() {
         stock: 200,
         minStock: 30,
         description: 'Antibiotik spektrum luas',
+        expiryDate: new Date('2027-06-30'),
       },
       {
         name: 'Antasida DOEN',
@@ -164,6 +169,7 @@ async function main() {
         stock: 300,
         minStock: 40,
         description: 'Obat maag dan gangguan pencernaan',
+        expiryDate: new Date('2026-12-31'),
       },
       {
         name: 'OBH Combi',
@@ -174,6 +180,7 @@ async function main() {
         stock: 50,
         minStock: 10,
         description: 'Obat batuk dan flu',
+        expiryDate: new Date('2026-09-30'),
       },
       {
         name: 'Vitamin C 500mg',
@@ -184,22 +191,45 @@ async function main() {
         stock: 400,
         minStock: 50,
         description: 'Suplemen vitamin C',
+        expiryDate: new Date('2028-01-31'),
+      },
+      {
+        name: 'Cetirizine 10mg',
+        genericName: 'Cetirizine HCl',
+        category: 'Antihistamin',
+        unit: 'Tablet',
+        price: 1500,
+        stock: 150,
+        minStock: 20,
+        description: 'Obat alergi',
+        expiryDate: new Date('2027-03-31'),
+      },
+      {
+        name: 'Omeprazole 20mg',
+        genericName: 'Omeprazole',
+        category: 'Antasida',
+        unit: 'Kapsul',
+        price: 3000,
+        stock: 100,
+        minStock: 20,
+        description: 'Obat tukak lambung',
+        expiryDate: new Date('2027-08-31'),
       },
     ],
   });
 
-  console.log(`✅ Created medicines`);
+  console.log('✅ Created medicines');
 
   console.log('\n🎉 Seed completed!\n');
   console.log('📋 Login credentials:');
-  console.log('─────────────────────────────────────────');
+  console.log('─────────────────────────────────────────────────────');
   console.log('SUPER_ADMIN  → superadmin@klinik.com / SuperAdmin123');
   console.log('ADMIN_KLINIK → admin@klinik.com      / Admin1234');
   console.log('DOKTER       → dokter@klinik.com     / Dokter1234');
   console.log('APOTEKER     → apoteker@klinik.com   / Apoteker1234');
   console.log('KASIR        → kasir@klinik.com      / Kasir1234');
   console.log('PASIEN       → pasien@klinik.com     / Pasien1234');
-  console.log('─────────────────────────────────────────');
+  console.log('─────────────────────────────────────────────────────');
 }
 
 main()

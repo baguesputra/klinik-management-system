@@ -35,19 +35,36 @@ enum PrescriptionStatus {
   MENUNGGU
   DIPROSES
   SELESAI
+  DIAMBIL_SEBAGIAN
+  TIDAK_DIAMBIL
 }
 
 enum PaymentMethod {
   TUNAI
-  TRANSFER
+  BRI
+  BNI
+  BCA
+  MANDIRI
+  BSI
+  QRIS
+  OVO
+  GOPAY
+  DANA
+  SHOPEEPAY
   BPJS
-  ASURANSI
+  ASURANSI_SWASTA
 }
 
 enum PaymentStatus {
   BELUM_BAYAR
   LUNAS
   SEBAGIAN
+}
+
+enum VoidStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum StockMutationType {
@@ -76,6 +93,9 @@ model User {
   doctor        Doctor?
   patient       Patient?
   auditLogs     AuditLog[]
+  kasirPayments Payment[]            @relation("KasirPayments")
+  voidRequests  PaymentVoidRequest[] @relation("VoidRequester")
+  voidReviews   PaymentVoidRequest[] @relation("VoidReviewer")
 
   @@map("users")
 }
@@ -86,7 +106,7 @@ model Doctor {
   specialization String
   licenseNumber  String  @unique
   schedule       Json    // { monday: ["08:00", "12:00"], ... }
-
+  consultFee Decimal @db.Decimal(12, 2) @default(150000)
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   appointments Appointment[]
 
@@ -206,6 +226,8 @@ model PrescriptionItem {
   dosage         String // "3x1 sesudah makan"
   notes          String?
 
+  quantityDispensed Int @default(0)
+
   prescription Prescription @relation(fields: [prescriptionId], references: [id])
   medicine     Medicine     @relation(fields: [medicineId], references: [id])
 
@@ -223,12 +245,58 @@ model Billing {
   paymentStatus PaymentStatus @default(BELUM_BAYAR)
   paidAt        DateTime?
   notes         String?
+  paidAmount        Decimal   @db.Decimal(12, 2) @default(0)
+  isBpjs            Boolean   @default(false)
+  bpjsNo            String?
+  bpjsCoveredAmount Decimal?  @db.Decimal(12, 2)
+  insuranceProvider String?
+  insuranceClaimNo  String?
+  insuranceCovered  Decimal?  @db.Decimal(12, 2)
+  payments          Payment[]
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
   appointment Appointment @relation(fields: [appointmentId], references: [id])
 
   @@map("billings")
+}
+
+model Payment {
+  id          String        @id @default(uuid())
+  billingId   String
+  amount      Decimal       @db.Decimal(12, 2)
+  amountPaid  Decimal       @db.Decimal(12, 2)
+  change      Decimal       @db.Decimal(12, 2) @default(0)
+  method      PaymentMethod
+  referenceNo String?
+  notes       String?
+  isVoid      Boolean       @default(false)
+  createdBy   String
+  createdAt   DateTime      @default(now())
+
+  billing     Billing            @relation(fields: [billingId], references: [id])
+  kasir       User               @relation("KasirPayments", fields: [createdBy], references: [id])
+  voidRequest PaymentVoidRequest?
+
+  @@map("payments")
+}
+
+model PaymentVoidRequest {
+  id          String     @id @default(uuid())
+  paymentId   String     @unique
+  reason      String
+  status      VoidStatus @default(PENDING)
+  requestedBy String
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  reviewNotes String?
+  createdAt   DateTime   @default(now())
+
+  payment   Payment @relation(fields: [paymentId], references: [id])
+  requester User    @relation("VoidRequester", fields: [requestedBy], references: [id])
+  reviewer  User?   @relation("VoidReviewer", fields: [reviewedBy], references: [id])
+
+  @@map("payment_void_requests")
 }
 
 model AuditLog {

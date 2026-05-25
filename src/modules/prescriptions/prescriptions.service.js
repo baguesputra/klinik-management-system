@@ -281,60 +281,104 @@ export class PrescriptionsService {
   }
 
   // ── Dispense (DIPROSES → SELESAI) ─────────────────────
-  async dispense(id) {
-    const prescription = await this.getById(id);
+  // ── Dispense (DIPROSES → SELESAI/DIAMBIL_SEBAGIAN/TIDAK_DIAMBIL) ──
+async dispense(id, dispensingItems) {
+  const prescription = await this.getById(id);
 
-    if (prescription.status !== 'DIPROSES') {
-      throw ApiError.badRequest(
-        `Cannot dispense prescription with status ${prescription.status}`
-      );
-    }
+  if (prescription.status !== 'DIPROSES') {
+    throw ApiError.badRequest(
+      `Cannot dispense prescription with status ${prescription.status}`
+    );
+  }
 
-    // Ambil detail dokter dan medical record untuk audit trail
-    const doctorName = prescription.medicalRecord.appointment.doctor.user.name;
-    const medicalRecordNo = prescription.medicalRecord.appointment.patient.medicalRecordNo;
-    const prescriptionDate = new Date(prescription.createdAt).toLocaleDateString('id-ID');
+  const doctorName = prescription.medicalRecord.appointment.doctor.user.name;
+  const medicalRecordNo = prescription.medicalRecord.appointment.patient.medicalRecordNo;
+  const prescriptionDate = new Date(prescription.createdAt).toLocaleDateString('id-ID');
 
-    // Cek stok semua item sebelum dispense
-    const insufficientItems = prescription.items
-      .filter((item) => item.medicine.stock < item.quantity)
-      .map((item) => ({
-        medicine: item.medicine.name,
-        requested: item.quantity,
-        available: item.medicine.stock,
-      }));
+  // Validasi dispensingItems — harus ada untuk setiap item di prescription
+  const prescriptionItemIds = prescription.items.map((i) => i.id);
+  const dispensingItemIds = dispensingItems.map((i) => i.prescriptionItemId);
 
-    if (insufficientItems.length > 0) {
-      throw ApiError.badRequest('Insufficient stock for some items', insufficientItems);
-    }
+  const missingItems = prescriptionItemIds.filter(
+    (id) => !dispensingItemIds.includes(id)
+  );
+  if (missingItems.length > 0) {
+    throw ApiError.badRequest(
+      'All prescription items must be included in dispensing data'
+    );
+  }
 
-    // Semua stok cukup — lakukan dispensing dalam satu transaksi
-    return prisma.$transaction(async (tx) => {
-      // Kurangi stok dan catat mutasi untuk setiap item
-      for (const item of prescription.items) {
+  // Map dispensingItems untuk akses cepat
+  const dispensingMap = Object.fromEntries(
+    dispensingItems.map((i) => [i.prescriptionItemId, i.quantityDispensed])
+  );
+
+  // Cek stok untuk item yang diambil
+  const insufficientItems = prescription.items
+    .filter((item) => {
+      const qtyDispensed = dispensingMap[item.id] ?? 0;
+      return qtyDispensed > 0 && item.medicine.stock < qtyDispensed;
+    })
+    .map((item) => ({
+      medicine: item.medicine.name,
+      requested: dispensingMap[item.id],
+      available: item.medicine.stock,
+    }));
+
+  if (insufficientItems.length > 0) {
+    throw ApiError.badRequest('Insufficient stock for some items', insufficientItems);
+  }
+
+  // Tentukan status berdasarkan quantityDispensed
+  const totalRequested = prescription.items.reduce((sum, i) => sum + i.quantity, 0);
+  const totalDispensed = prescription.items.reduce(
+    (sum, i) => sum + (dispensingMap[i.id] ?? 0), 0
+  );
+
+  let newStatus;
+  if (totalDispensed === 0) {
+    newStatus = 'TIDAK_DIAMBIL';
+  } else if (totalDispensed < totalRequested) {
+    newStatus = 'DIAMBIL_SEBAGIAN';
+  } else {
+    newStatus = 'SELESAI';
+  }
+
+  return prisma.$transaction(async (tx) => {
+    for (const item of prescription.items) {
+      const qtyDispensed = dispensingMap[item.id] ?? 0;
+
+      // Update quantityDispensed di PrescriptionItem
+      await tx.prescriptionItem.update({
+        where: { id: item.id },
+        data: { quantityDispensed: qtyDispensed },
+      });
+
+      // Kurangi stok hanya untuk yang diambil
+      if (qtyDispensed > 0) {
         await tx.medicine.update({
           where: { id: item.medicine.id },
-          data: { stock: { decrement: item.quantity } },
+          data: { stock: { decrement: qtyDispensed } },
         });
 
         await tx.stockMutation.create({
           data: {
             medicineId: item.medicine.id,
             type: 'KELUAR',
-            quantity: item.quantity,
+            quantity: qtyDispensed,
             reason: `Dispensing resep #${id} — Dr. ${doctorName} — RM: ${medicalRecordNo} — ${prescriptionDate}`,
           },
         });
       }
+    }
 
-      // Update status prescription ke SELESAI
-      return tx.prescription.update({
-        where: { id },
-        data: { status: 'SELESAI' },
-        select: prescriptionSelect,
-      });
+    return tx.prescription.update({
+      where: { id },
+      data: { status: newStatus },
+      select: prescriptionSelect,
     });
-  }
+  });
+}
 
   // ── Cancel (MENUNGGU → hapus) ─────────────────────────
   async cancel(id, requesterId) {

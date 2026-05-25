@@ -25,6 +25,13 @@ export const updatePrescriptionSchema = z.object({
   { message: 'At least one field is required' }
 );
 
+export const dispenseSchema = z.object({
+  items: z.array(z.object({
+    prescriptionItemId: z.string().uuid('Invalid prescription item ID'),
+    quantityDispensed: z.number().int().min(0, 'Quantity cannot be negative'),
+  })).min(1, 'Dispensing items are required'),
+});
+
 export const queryPrescriptionSchema = z.object({
   page: z.string().optional(),
   limit: z.string().optional(),
