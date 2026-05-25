@@ -1,0 +1,251 @@
+# docs/paths/users.yaml
+paths:
+  /api/users:
+    get:
+      tags: [Users]
+      summary: List semua user
+      description: Hanya SUPER_ADMIN dan ADMIN_KLINIK yang bisa akses
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Cari by nama, email, atau phone
+        - in: query
+          name: role
+          schema:
+            type: string
+            enum: [SUPER_ADMIN, ADMIN_KLINIK, DOKTER, APOTEKER, KASIR, PASIEN]
+        - in: query
+          name: isActive
+          schema:
+            type: string
+            enum: ['true', 'false']
+      responses:
+        '200':
+          description: List user berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Users]
+      summary: Buat user baru
+      description: Hanya SUPER_ADMIN yang bisa akses
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                  example: Kasir Baru
+                email:
+                  type: string
+                  format: email
+                  example: kasir.baru@klinik.com
+                password:
+                  type: string
+                  example: Kasir1234
+                phone:
+                  type: string
+                  example: "081234567899"
+                role:
+                  type: string
+                  enum: [SUPER_ADMIN, ADMIN_KLINIK, DOKTER, APOTEKER, KASIR, PASIEN]
+                  default: PASIEN
+      responses:
+        '201':
+          description: User berhasil dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/users/{id}:
+    get:
+      tags: [Users]
+      summary: Get detail user by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detail user berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Users]
+      summary: Update user
+      description: Hanya SUPER_ADMIN yang bisa akses
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Nama Baru
+                phone:
+                  type: string
+                  example: "081234567899"
+                avatarUrl:
+                  type: string
+                  format: uri
+      responses:
+        '200':
+          description: User berhasil diupdate
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Users]
+      summary: Hapus user
+      description: Hanya SUPER_ADMIN yang bisa akses. Tidak bisa hapus akun sendiri.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User berhasil dihapus
+        '400':
+          description: Tidak bisa hapus akun sendiri
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/users/{id}/role:
+    patch:
+      tags: [Users]
+      summary: Ganti role user
+      description: Hanya SUPER_ADMIN. Tidak bisa ganti role sendiri.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role:
+                  type: string
+                  enum: [SUPER_ADMIN, ADMIN_KLINIK, DOKTER, APOTEKER, KASIR, PASIEN]
+      responses:
+        '200':
+          description: Role berhasil diupdate
+        '400':
+          description: Tidak bisa ganti role sendiri
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/users/{id}/toggle-active:
+    patch:
+      tags: [Users]
+      summary: Aktifkan atau nonaktifkan user
+      description: Hanya SUPER_ADMIN. Tidak bisa nonaktifkan akun sendiri.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Status user berhasil diubah
+        '400':
+          description: Tidak bisa nonaktifkan akun sendiri
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'

@@ -1,0 +1,357 @@
+# docs/components/schemas.yaml
+components:
+  schemas:
+    # ── Pagination ──────────────────────────────────────
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 100
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        totalPages:
+          type: integer
+          example: 10
+        hasNextPage:
+          type: boolean
+          example: true
+        hasPrevPage:
+          type: boolean
+          example: false
+
+    # ── User ────────────────────────────────────────────
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          example: Budi Santoso
+        email:
+          type: string
+          format: email
+          example: budi@example.com
+        phone:
+          type: string
+          example: "081234567890"
+        role:
+          type: string
+          enum: [SUPER_ADMIN, ADMIN_KLINIK, DOKTER, APOTEKER, KASIR, PASIEN]
+          example: PASIEN
+        isActive:
+          type: boolean
+          example: true
+        isVerified:
+          type: boolean
+          example: true
+        avatarUrl:
+          type: string
+          nullable: true
+          example: https://example.com/avatar.jpg
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ── Doctor ──────────────────────────────────────────
+    Doctor:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        specialization:
+          type: string
+          example: Dokter Umum
+        licenseNumber:
+          type: string
+          example: SIP-DU-001-2024
+        consultFee:
+          type: number
+          example: 150000
+        schedule:
+          type: object
+          example:
+            monday: ["08:00", "16:00"]
+            tuesday: ["08:00", "16:00"]
+            friday: ["08:00", "12:00"]
+        user:
+          $ref: '#/components/schemas/UserBasic'
+
+    # ── Patient ─────────────────────────────────────────
+    Patient:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        medicalRecordNo:
+          type: string
+          example: clx1234567890
+        dateOfBirth:
+          type: string
+          format: date
+          example: "1990-01-15"
+        gender:
+          type: string
+          enum: [LAKI_LAKI, PEREMPUAN]
+        address:
+          type: string
+          example: Jl. Kesehatan No. 1, Banjarmasin
+        bloodType:
+          type: string
+          enum: [A, B, AB, O]
+          nullable: true
+        allergies:
+          type: string
+          nullable: true
+          example: Penisilin
+        emergencyContact:
+          type: string
+          nullable: true
+          example: "081234567890"
+        user:
+          $ref: '#/components/schemas/UserBasic'
+
+    # ── Appointment ─────────────────────────────────────
+    Appointment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date-time
+        queueNumber:
+          type: integer
+          example: 3
+        complaint:
+          type: string
+          example: Demam tinggi sejak 3 hari
+        status:
+          type: string
+          enum: [MENUNGGU, DIPANGGIL, SELESAI, DIBATALKAN]
+        notes:
+          type: string
+          nullable: true
+        patient:
+          $ref: '#/components/schemas/PatientBasic'
+        doctor:
+          $ref: '#/components/schemas/DoctorBasic'
+
+    # ── Medicine ────────────────────────────────────────
+    Medicine:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Paracetamol 500mg
+        genericName:
+          type: string
+          nullable: true
+          example: Paracetamol
+        category:
+          type: string
+          example: Analgesik
+        unit:
+          type: string
+          example: tablet
+        price:
+          type: number
+          example: 500
+        stock:
+          type: integer
+          example: 100
+        minStock:
+          type: integer
+          example: 20
+        expiryDate:
+          type: string
+          format: date
+          nullable: true
+          example: "2027-12-31"
+        isActive:
+          type: boolean
+          example: true
+        isLowStock:
+          type: boolean
+          example: false
+        isExpired:
+          type: boolean
+          example: false
+
+    # ── Prescription ────────────────────────────────────
+    Prescription:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [MENUNGGU, DIPROSES, SELESAI, DIAMBIL_SEBAGIAN, TIDAK_DIAMBIL]
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PrescriptionItem'
+
+    # ── PrescriptionItem ────────────────────────────────
+    PrescriptionItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          example: 10
+        quantityDispensed:
+          type: integer
+          example: 10
+        dosage:
+          type: string
+          example: 3x1 sesudah makan
+        notes:
+          type: string
+          nullable: true
+        medicine:
+          $ref: '#/components/schemas/MedicineBasic'
+
+    # ── Billing ─────────────────────────────────────────
+    Billing:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        invoiceNumber:
+          type: string
+          example: INV-20250610-001
+        consultFee:
+          type: number
+          example: 150000
+        medicineFee:
+          type: number
+          example: 75000
+        totalAmount:
+          type: number
+          example: 225000
+        paidAmount:
+          type: number
+          example: 225000
+        paymentStatus:
+          type: string
+          enum: [BELUM_BAYAR, SEBAGIAN, LUNAS]
+        isBpjs:
+          type: boolean
+          example: false
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    # ── Payment ─────────────────────────────────────────
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          example: 225000
+        amountPaid:
+          type: number
+          example: 250000
+        change:
+          type: number
+          example: 25000
+        method:
+          type: string
+          enum: [TUNAI, BRI, BNI, BCA, MANDIRI, BSI, QRIS, OVO, GOPAY, DANA, SHOPEEPAY, BPJS, ASURANSI_SWASTA]
+        referenceNo:
+          type: string
+          nullable: true
+          example: QRIS20250610001
+        isVoid:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+
+    # ── Basic schemas (untuk nested response) ───────────
+    UserBasic:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Budi Santoso
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          nullable: true
+
+    DoctorBasic:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        specialization:
+          type: string
+          example: Dokter Umum
+        user:
+          $ref: '#/components/schemas/UserBasic'
+
+    PatientBasic:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        medicalRecordNo:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserBasic'
+
+    MedicineBasic:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Paracetamol 500mg
+        unit:
+          type: string
+          example: tablet
+        price:
+          type: number
+          example: 500
