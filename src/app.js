@@ -12,6 +12,7 @@ import doctorsRoutes from './modules/doctors/doctors.routes.js';
 import appointmentsRoutes from './modules/appointments/appointments.routes.js';
 import medicinesRoutes from './modules/medicines/medicines.routes.js';
 import prescriptionsRoutes from './modules/prescriptions/prescriptions.routes.js';
+import billingsRoutes from './modules/billings/billings.routes.js';
 import { env } from './config/env.js';
 
 const app = express();
@@ -37,6 +38,8 @@ app.use('/api/doctors', doctorsRoutes);
 app.use('/api/appointments', appointmentsRoutes);
 app.use('/api/medicines', medicinesRoutes);
 app.use('/api/prescriptions', prescriptionsRoutes);
+app.use('/api/billings', billingsRoutes);
+
 
 // 404 handler
 app.use((req, res) => {
