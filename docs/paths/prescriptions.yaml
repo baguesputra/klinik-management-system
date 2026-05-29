@@ -1,0 +1,349 @@
+# docs/paths/prescriptions.yaml
+paths:
+  /api/prescriptions:
+    get:
+      tags: [Prescriptions]
+      summary: List semua resep
+      description: Dapat diakses oleh SUPER_ADMIN, ADMIN_KLINIK, APOTEKER, dan DOKTER
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [MENUNGGU, DIPROSES, SELESAI, DIAMBIL_SEBAGIAN, TIDAK_DIAMBIL]
+        - in: query
+          name: dateFrom
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: dateTo
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List resep berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Prescription'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Prescriptions]
+      summary: Buat resep baru
+      description: |
+        Hanya DOKTER.
+        Satu medical record hanya bisa punya satu resep.
+        Dokter hanya bisa buat resep dari medical record miliknya sendiri.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [medicalRecordId, items]
+              properties:
+                medicalRecordId:
+                  type: string
+                  format: uuid
+                notes:
+                  type: string
+                  example: Minum obat setelah makan
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [medicineId, quantity, dosage]
+                    properties:
+                      medicineId:
+                        type: string
+                        format: uuid
+                      quantity:
+                        type: integer
+                        example: 10
+                      dosage:
+                        type: string
+                        example: 3x1 sesudah makan
+                      notes:
+                        type: string
+      responses:
+        '201':
+          description: Resep berhasil dibuat
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/prescriptions/my:
+    get:
+      tags: [Prescriptions]
+      summary: Get resep sendiri
+      description: Hanya PASIEN yang bisa akses
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [MENUNGGU, DIPROSES, SELESAI, DIAMBIL_SEBAGIAN, TIDAK_DIAMBIL]
+      responses:
+        '200':
+          description: Resep pasien berhasil diambil
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/prescriptions/{id}:
+    get:
+      tags: [Prescriptions]
+      summary: Get detail resep by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detail resep berhasil diambil
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Prescriptions]
+      summary: Update items resep
+      description: |
+        Hanya DOKTER dan hanya saat status MENUNGGU.
+        ⚠️ Items bersifat REPLACE — kirim semua items yang diinginkan,
+        bukan hanya yang baru. Items yang tidak disertakan akan dihapus.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                notes:
+                  type: string
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [medicineId, quantity, dosage]
+                    properties:
+                      medicineId:
+                        type: string
+                        format: uuid
+                      quantity:
+                        type: integer
+                      dosage:
+                        type: string
+                      notes:
+                        type: string
+      responses:
+        '200':
+          description: Resep berhasil diupdate
+        '400':
+          description: Tidak bisa update resep yang bukan MENUNGGU
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Prescriptions]
+      summary: Batalkan resep
+      description: Hanya DOKTER dan hanya saat status MENUNGGU. Hard delete dari DB.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Resep berhasil dibatalkan
+        '400':
+          description: Tidak bisa batalkan resep yang bukan MENUNGGU
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/prescriptions/{id}/process:
+    patch:
+      tags: [Prescriptions]
+      summary: Mulai proses resep
+      description: Hanya APOTEKER. Status MENUNGGU → DIPROSES. Dokter tidak bisa batalkan resep setelah ini.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Resep mulai diproses
+        '400':
+          description: Resep bukan status MENUNGGU
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/prescriptions/{id}/revert:
+    patch:
+      tags: [Prescriptions]
+      summary: Kembalikan resep ke MENUNGGU
+      description: Hanya APOTEKER. Status DIPROSES → MENUNGGU. Digunakan saat dokter ingin tambah/ubah obat.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Resep dikembalikan ke MENUNGGU
+        '400':
+          description: Resep bukan status DIPROSES
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/prescriptions/{id}/dispense:
+    patch:
+      tags: [Prescriptions]
+      summary: Dispense resep
+      description: |
+        Hanya APOTEKER. Status DIPROSES → SELESAI/DIAMBIL_SEBAGIAN/TIDAK_DIAMBIL.
+        Input quantityDispensed per item — bisa berbeda dari quantity yang diresepkan.
+        Stok obat otomatis berkurang sesuai quantityDispensed.
+        StockMutation KELUAR otomatis tercatat dengan audit trail lengkap.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [prescriptionItemId, quantityDispensed]
+                    properties:
+                      prescriptionItemId:
+                        type: string
+                        format: uuid
+                      quantityDispensed:
+                        type: integer
+                        minimum: 0
+                        example: 10
+      responses:
+        '200':
+          description: Resep berhasil didispensing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Prescription'
+        '400':
+          description: Stok tidak mencukupi atau resep bukan status DIPROSES
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Insufficient stock for some items
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        medicine:
+                          type: string
+                          example: Amoxicillin 500mg
+                        requested:
+                          type: integer
+                          example: 30
+                        available:
+                          type: integer
+                          example: 10
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'

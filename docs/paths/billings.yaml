@@ -1,0 +1,563 @@
+# docs/paths/billings.yaml
+paths:
+  /api/billings:
+    get:
+      tags: [Billings]
+      summary: List semua billing
+      description: Dapat diakses oleh SUPER_ADMIN, ADMIN_KLINIK, dan KASIR
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: paymentStatus
+          schema:
+            type: string
+            enum: [BELUM_BAYAR, SEBAGIAN, LUNAS]
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Cari by nomor invoice atau nama pasien
+        - in: query
+          name: dateFrom
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: dateTo
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List billing berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Billing'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Billings]
+      summary: Generate invoice
+      description: |
+        Hanya KASIR dan SUPER_ADMIN.
+        Appointment harus sudah berstatus SELESAI.
+        medicineFee awal = 0, diupdate setelah dispensing.
+        invoiceNumber otomatis: INV-YYYYMMDD-XXX
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [appointmentId, consultFee]
+              properties:
+                appointmentId:
+                  type: string
+                  format: uuid
+                consultFee:
+                  type: number
+                  minimum: 0
+                  example: 150000
+                notes:
+                  type: string
+                isBpjs:
+                  type: boolean
+                  default: false
+                bpjsNo:
+                  type: string
+                  example: "0001234567890"
+                  description: Wajib jika isBpjs=true
+                bpjsCoveredAmount:
+                  type: number
+                  minimum: 0
+                  example: 150000
+                insuranceProvider:
+                  type: string
+                  example: Prudential
+                insuranceClaimNo:
+                  type: string
+                  example: PRU-2025-001234
+                  description: Wajib jika insuranceProvider diisi
+                insuranceCovered:
+                  type: number
+                  minimum: 0
+      responses:
+        '201':
+          description: Invoice berhasil digenerate
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Billing'
+        '400':
+          description: Appointment belum SELESAI
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/billings/my:
+    get:
+      tags: [Billings]
+      summary: Get tagihan sendiri
+      description: Hanya PASIEN yang bisa akses
+      parameters:
+        - in: query
+          name: paymentStatus
+          schema:
+            type: string
+            enum: [BELUM_BAYAR, SEBAGIAN, LUNAS]
+      responses:
+        '200':
+          description: Tagihan pasien berhasil diambil
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/billings/report/daily:
+    get:
+      tags: [Billings]
+      summary: Laporan keuangan harian
+      description: Rate limit 20x per jam. Hanya SUPER_ADMIN, ADMIN_KLINIK, KASIR.
+      parameters:
+        - in: query
+          name: date
+          schema:
+            type: string
+            format: date
+          description: Default hari ini
+          example: "2025-06-10"
+      responses:
+        '200':
+          description: Laporan harian berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      date:
+                        type: string
+                        example: "2025-06-10"
+                      totalTransactions:
+                        type: integer
+                        example: 20
+                      totalIncome:
+                        type: number
+                        example: 5000000
+                      consultFeeTotal:
+                        type: number
+                        example: 3000000
+                      medicineFeeTotal:
+                        type: number
+                        example: 2000000
+                      byPaymentMethod:
+                        type: object
+                        example:
+                          TUNAI: 2000000
+                          QRIS: 1500000
+                          BRI: 500000
+                          BPJS: 1000000
+                      byStatus:
+                        type: object
+                        example:
+                          BELUM_BAYAR: 0
+                          SEBAGIAN: 2
+                          LUNAS: 18
+
+  /api/billings/report/monthly:
+    get:
+      tags: [Billings]
+      summary: Laporan keuangan bulanan
+      description: Rate limit 20x per jam. Hanya SUPER_ADMIN, ADMIN_KLINIK, KASIR.
+      parameters:
+        - in: query
+          name: month
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}$'
+          description: Format YYYY-MM. Default bulan ini.
+          example: "2025-06"
+      responses:
+        '200':
+          description: Laporan bulanan berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      month:
+                        type: string
+                        example: "2025-06"
+                      totalTransactions:
+                        type: integer
+                      totalIncome:
+                        type: number
+                      byDay:
+                        type: object
+                        description: Income per hari dalam bulan
+                        example:
+                          "2025-06-01": 500000
+                          "2025-06-02": 750000
+                      byPaymentMethod:
+                        type: object
+                      byStatus:
+                        type: object
+
+  /api/billings/{id}:
+    get:
+      tags: [Billings]
+      summary: Get detail billing by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detail billing berhasil diambil
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Billings]
+      summary: Update billing
+      description: Hanya KASIR dan SUPER_ADMIN. Tidak bisa update billing yang sudah LUNAS.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                consultFee:
+                  type: number
+                  minimum: 0
+                notes:
+                  type: string
+                isBpjs:
+                  type: boolean
+                bpjsNo:
+                  type: string
+                bpjsCoveredAmount:
+                  type: number
+                insuranceProvider:
+                  type: string
+                insuranceClaimNo:
+                  type: string
+                insuranceCovered:
+                  type: number
+      responses:
+        '200':
+          description: Billing berhasil diupdate
+        '400':
+          description: Tidak bisa update billing yang sudah LUNAS
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/billings/{id}/pdf:
+    get:
+      tags: [Billings]
+      summary: Download invoice PDF
+      description: Rate limit 20x per jam. Dapat diakses SUPER_ADMIN, KASIR, dan PASIEN.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: File PDF invoice
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/billings/{id}/medicine-fee:
+    patch:
+      tags: [Billings]
+      summary: Update biaya obat
+      description: Hanya KASIR dan SUPER_ADMIN. Digunakan setelah apoteker selesai dispensing.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [medicineFee]
+              properties:
+                medicineFee:
+                  type: number
+                  minimum: 0
+                  example: 75000
+      responses:
+        '200':
+          description: Biaya obat berhasil diupdate
+        '400':
+          description: Tidak bisa update billing yang sudah LUNAS
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/billings/{id}/payments:
+    get:
+      tags: [Billings]
+      summary: Get riwayat pembayaran
+      description: Hanya SUPER_ADMIN, ADMIN_KLINIK, dan KASIR
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Riwayat pembayaran berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Payment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Billings]
+      summary: Tambah pembayaran
+      description: |
+        Hanya KASIR dan SUPER_ADMIN.
+        Transfer dan digital payment wajib menyertakan referenceNo.
+        Non-tunai: amountPaid harus sama dengan amount.
+        Tunai: kembalian dihitung otomatis (amountPaid - amount).
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, amountPaid, method]
+              properties:
+                amount:
+                  type: number
+                  example: 150000
+                  description: Jumlah yang dibayarkan untuk tagihan ini
+                amountPaid:
+                  type: number
+                  example: 200000
+                  description: Uang yang diserahkan pasien (untuk tunai bisa lebih dari amount)
+                method:
+                  type: string
+                  enum: [TUNAI, BRI, BNI, BCA, MANDIRI, BSI, QRIS, OVO, GOPAY, DANA, SHOPEEPAY, BPJS, ASURANSI_SWASTA]
+                referenceNo:
+                  type: string
+                  example: QRIS20250610001
+                  description: Wajib untuk transfer dan digital payment
+                notes:
+                  type: string
+      responses:
+        '201':
+          description: Pembayaran berhasil dicatat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      payment:
+                        $ref: '#/components/schemas/Payment'
+                      billingStatus:
+                        type: string
+                        enum: [SEBAGIAN, LUNAS]
+                      totalAmount:
+                        type: number
+                      paidAmount:
+                        type: number
+                      remainingAmount:
+                        type: number
+        '400':
+          description: Billing sudah LUNAS atau amount melebihi sisa tagihan
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/billings/{id}/payments/{paymentId}/void:
+    post:
+      tags: [Billings]
+      summary: Request void pembayaran
+      description: Hanya KASIR yang membuat pembayaran tersebut yang bisa request void.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: path
+          name: paymentId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  minLength: 10
+                  example: Salah input metode pembayaran
+      responses:
+        '201':
+          description: Void request berhasil disubmit, menunggu approval
+        '400':
+          description: Payment sudah di-void atau sudah ada request pending
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    patch:
+      tags: [Billings]
+      summary: Review void request
+      description: |
+        Hanya SUPER_ADMIN dan ADMIN_KLINIK.
+        Jika APPROVED — payment di-void dan paidAmount billing dikurangi otomatis.
+        Jika REJECTED — payment tetap valid.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: path
+          name: paymentId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status, reviewNotes]
+              properties:
+                status:
+                  type: string
+                  enum: [APPROVED, REJECTED]
+                reviewNotes:
+                  type: string
+                  minLength: 5
+                  example: Dikonfirmasi, kasir salah input metode
+      responses:
+        '200':
+          description: Void request berhasil direview
+        '400':
+          description: Request sudah direview sebelumnya
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'

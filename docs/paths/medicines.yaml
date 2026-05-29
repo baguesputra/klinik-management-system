@@ -1,0 +1,347 @@
+# docs/paths/medicines.yaml
+paths:
+  /api/medicines:
+    get:
+      tags: [Medicines]
+      summary: List semua obat
+      description: Dapat diakses oleh semua role. Default hanya tampilkan obat aktif.
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Cari by nama, genericName, atau kategori
+        - in: query
+          name: category
+          schema:
+            type: string
+          example: Analgesik
+        - in: query
+          name: isLowStock
+          schema:
+            type: string
+            enum: ['true', 'false']
+          description: Filter obat dengan stok di bawah minStock
+        - in: query
+          name: isActive
+          schema:
+            type: string
+            enum: ['true', 'false']
+        - in: query
+          name: isExpired
+          schema:
+            type: string
+            enum: ['true', 'false']
+        - in: query
+          name: expiryBefore
+          schema:
+            type: string
+            format: date
+          description: Filter obat yang akan kadaluarsa sebelum tanggal ini
+          example: "2025-12-31"
+      responses:
+        '200':
+          description: List obat berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Medicine'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Medicines]
+      summary: Tambah obat baru
+      description: Hanya SUPER_ADMIN dan APOTEKER. Stok awal otomatis dicatat sebagai mutasi MASUK.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, category, unit, price]
+              properties:
+                name:
+                  type: string
+                  example: Paracetamol 500mg
+                genericName:
+                  type: string
+                  example: Paracetamol
+                category:
+                  type: string
+                  example: Analgesik
+                unit:
+                  type: string
+                  example: tablet
+                price:
+                  type: number
+                  example: 500
+                stock:
+                  type: integer
+                  default: 0
+                  example: 100
+                minStock:
+                  type: integer
+                  default: 10
+                  example: 20
+                description:
+                  type: string
+                expiryDate:
+                  type: string
+                  format: date
+                  example: "2027-12-31"
+      responses:
+        '201':
+          description: Obat berhasil ditambahkan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Medicine'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/medicines/{id}:
+    get:
+      tags: [Medicines]
+      summary: Get detail obat by ID
+      description: Include 10 riwayat mutasi stok terbaru
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detail obat berhasil diambil
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Medicines]
+      summary: Update info obat
+      description: Hanya SUPER_ADMIN dan APOTEKER. Stok tidak bisa diubah lewat endpoint ini.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                genericName:
+                  type: string
+                category:
+                  type: string
+                unit:
+                  type: string
+                price:
+                  type: number
+                minStock:
+                  type: integer
+                description:
+                  type: string
+                expiryDate:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          description: Obat berhasil diupdate
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Medicines]
+      summary: Nonaktifkan obat
+      description: Soft delete via isActive=false. Hanya SUPER_ADMIN. Data tetap ada di DB untuk histori.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Obat berhasil dinonaktifkan
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/medicines/{id}/stock:
+    get:
+      tags: [Medicines]
+      summary: Get riwayat mutasi stok
+      description: Hanya SUPER_ADMIN dan APOTEKER
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [MASUK, KELUAR, ADJUSTMENT]
+        - in: query
+          name: dateFrom
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: dateTo
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Riwayat mutasi stok berhasil diambil
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags: [Medicines]
+      summary: Tambah mutasi stok
+      description: |
+        Hanya SUPER_ADMIN dan APOTEKER.
+        MASUK dan KELUAR — quantity harus positif.
+        ADJUSTMENT — quantity boleh negatif untuk koreksi stok opname ke bawah.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, quantity, reason]
+              properties:
+                type:
+                  type: string
+                  enum: [MASUK, KELUAR, ADJUSTMENT]
+                quantity:
+                  type: integer
+                  example: 50
+                  description: Positif untuk MASUK/KELUAR, boleh negatif untuk ADJUSTMENT
+                reason:
+                  type: string
+                  minLength: 3
+                  example: Restock dari supplier
+      responses:
+        '201':
+          description: Mutasi stok berhasil dicatat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      medicine:
+                        $ref: '#/components/schemas/Medicine'
+                      mutation:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          type:
+                            type: string
+                          quantity:
+                            type: integer
+                          reason:
+                            type: string
+                          createdAt:
+                            type: string
+                            format: date-time
+                      previousStock:
+                        type: integer
+                        example: 100
+                      currentStock:
+                        type: integer
+                        example: 150
+        '400':
+          description: Stok tidak mencukupi atau obat tidak aktif
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'

@@ -1,0 +1,229 @@
+# docs/paths/appointments.yaml
+paths:
+  /api/appointments:
+    get:
+      tags: [Appointments]
+      summary: List semua appointment
+      description: Dapat diakses oleh SUPER_ADMIN, ADMIN_KLINIK, dan DOKTER
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: date
+          schema:
+            type: string
+            format: date
+          example: "2025-06-10"
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [MENUNGGU, DIPANGGIL, SELESAI, DIBATALKAN]
+        - in: query
+          name: doctorId
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: patientId
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List appointment berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Appointment'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Appointments]
+      summary: Buat appointment baru
+      description: |
+        Hanya ADMIN_KLINIK dan SUPER_ADMIN.
+        Auto-generate nomor antrian berdasarkan dokter dan tanggal.
+        Validasi jadwal dokter — dokter harus praktek di hari tersebut.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [patientId, doctorId, date, complaint]
+              properties:
+                patientId:
+                  type: string
+                  format: uuid
+                doctorId:
+                  type: string
+                  format: uuid
+                date:
+                  type: string
+                  format: date-time
+                  description: Harus masa depan
+                  example: "2025-06-10T09:00:00.000Z"
+                complaint:
+                  type: string
+                  minLength: 3
+                  maxLength: 500
+                  example: Demam tinggi sejak 3 hari
+      responses:
+        '201':
+          description: Appointment berhasil dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    allOf:
+                      - $ref: '#/components/schemas/Appointment'
+                      - type: object
+                        properties:
+                          queueNumber:
+                            type: integer
+                            example: 3
+                            description: Nomor antrian otomatis
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/appointments/my:
+    get:
+      tags: [Appointments]
+      summary: Get appointment sendiri
+      description: Hanya PASIEN yang bisa akses
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [MENUNGGU, DIPANGGIL, SELESAI, DIBATALKAN]
+      responses:
+        '200':
+          description: Appointment pasien berhasil diambil
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/appointments/{id}:
+    get:
+      tags: [Appointments]
+      summary: Get detail appointment by ID
+      description: Include preview medical record dan billing jika sudah ada
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detail appointment berhasil diambil
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Appointments]
+      summary: Batalkan appointment
+      description: Soft delete — status berubah ke DIBATALKAN. Hanya bisa batalkan yang masih MENUNGGU.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Appointment berhasil dibatalkan
+        '400':
+          description: Tidak bisa batalkan appointment yang bukan MENUNGGU
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/appointments/{id}/status:
+    patch:
+      tags: [Appointments]
+      summary: Update status appointment
+      description: |
+        DOKTER hanya bisa update appointment miliknya.
+        Status tidak bisa dikembalikan ke MENUNGGU.
+        Flow: MENUNGGU → DIPANGGIL → SELESAI
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [DIPANGGIL, SELESAI, DIBATALKAN]
+                notes:
+                  type: string
+                  example: Pasien masuk ruang periksa 1
+      responses:
+        '200':
+          description: Status appointment berhasil diupdate
+        '400':
+          description: Status tidak valid atau sudah final
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'

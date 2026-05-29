@@ -1,0 +1,376 @@
+# docs/paths/patients.yaml
+paths:
+  /api/patients:
+    get:
+      tags: [Patients]
+      summary: List semua pasien
+      description: Dapat diakses oleh SUPER_ADMIN, ADMIN_KLINIK, dan DOKTER
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Cari by nama, email, nomor RM, atau phone
+        - in: query
+          name: gender
+          schema:
+            type: string
+            enum: [LAKI_LAKI, PEREMPUAN]
+        - in: query
+          name: bloodType
+          schema:
+            type: string
+            enum: [A, B, AB, O]
+      responses:
+        '200':
+          description: List pasien berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Patient'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Patients]
+      summary: Daftarkan pasien baru
+      description: Membuat user + profil pasien sekaligus. Hanya SUPER_ADMIN dan ADMIN_KLINIK.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, dateOfBirth, gender]
+              properties:
+                name:
+                  type: string
+                  example: Andi Wijaya
+                email:
+                  type: string
+                  format: email
+                  example: andi@example.com
+                password:
+                  type: string
+                  example: Pasien1234
+                  description: Opsional — jika tidak diisi akan digenerate otomatis
+                phone:
+                  type: string
+                  example: "081234567890"
+                dateOfBirth:
+                  type: string
+                  format: date
+                  example: "1990-01-15"
+                gender:
+                  type: string
+                  enum: [LAKI_LAKI, PEREMPUAN]
+                address:
+                  type: string
+                  example: Jl. Kesehatan No. 1, Banjarmasin
+                bloodType:
+                  type: string
+                  enum: [A, B, AB, O]
+                allergies:
+                  type: string
+                  example: Penisilin
+                emergencyContact:
+                  type: string
+                  example: "081234567891"
+      responses:
+        '201':
+          description: Pasien berhasil didaftarkan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Patient registered successfully
+                  data:
+                    allOf:
+                      - $ref: '#/components/schemas/Patient'
+                      - type: object
+                        properties:
+                          temporaryPassword:
+                            type: string
+                            description: Password sementara — hanya ditampilkan sekali
+                            example: PasienABC123
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/patients/me:
+    get:
+      tags: [Patients]
+      summary: Get profil pasien sendiri
+      description: Hanya PASIEN yang bisa akses endpoint ini
+      responses:
+        '200':
+          description: Profil pasien berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Patient'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/patients/{id}:
+    get:
+      tags: [Patients]
+      summary: Get detail pasien by ID
+      description: PASIEN hanya bisa lihat profil sendiri
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detail pasien berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    allOf:
+                      - $ref: '#/components/schemas/Patient'
+                      - type: object
+                        properties:
+                          appointments:
+                            type: array
+                            description: 5 appointment terbaru
+                            items:
+                              $ref: '#/components/schemas/Appointment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Patients]
+      summary: Update profil pasien
+      description: PASIEN hanya bisa update profil sendiri
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Andi Wijaya Updated
+                phone:
+                  type: string
+                  example: "081234567899"
+                address:
+                  type: string
+                bloodType:
+                  type: string
+                  enum: [A, B, AB, O]
+                allergies:
+                  type: string
+                emergencyContact:
+                  type: string
+      responses:
+        '200':
+          description: Pasien berhasil diupdate
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/patients/{id}/medical-records:
+    get:
+      tags: [Patients]
+      summary: Get semua rekam medis pasien
+      description: PASIEN hanya bisa lihat rekam medis sendiri
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Rekam medis berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        diagnosis:
+                          type: string
+                          example: Infeksi Saluran Pernapasan Atas
+                        bloodPressure:
+                          type: string
+                          example: "120/80"
+                        weight:
+                          type: number
+                          example: 70
+                        height:
+                          type: number
+                          example: 170
+                        temperature:
+                          type: number
+                          example: 38.5
+                        createdAt:
+                          type: string
+                          format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags: [Patients]
+      summary: Buat rekam medis baru
+      description: Hanya DOKTER yang bisa akses. Otomatis update status appointment ke SELESAI.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [appointmentId, diagnosis]
+              properties:
+                appointmentId:
+                  type: string
+                  format: uuid
+                diagnosis:
+                  type: string
+                  example: Infeksi Saluran Pernapasan Atas
+                notes:
+                  type: string
+                bloodPressure:
+                  type: string
+                  example: "120/80"
+                weight:
+                  type: number
+                  example: 70
+                height:
+                  type: number
+                  example: 170
+                temperature:
+                  type: number
+                  example: 38.5
+      responses:
+        '201':
+          description: Rekam medis berhasil dibuat
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/patients/{id}/medical-records/{recordId}:
+    get:
+      tags: [Patients]
+      summary: Get detail rekam medis by ID
+      description: PASIEN hanya bisa lihat rekam medis sendiri
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: path
+          name: recordId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detail rekam medis berhasil diambil
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'

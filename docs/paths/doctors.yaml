@@ -1,0 +1,252 @@
+# docs/paths/doctors.yaml
+paths:
+  /api/doctors:
+    get:
+      tags: [Doctors]
+      summary: List semua dokter
+      description: Dapat diakses oleh semua role
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Cari by nama, spesialisasi, atau nomor SIP
+        - in: query
+          name: specialization
+          schema:
+            type: string
+          example: Dokter Umum
+      responses:
+        '200':
+          description: List dokter berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Doctor'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Doctors]
+      summary: Buat profil dokter
+      description: Attach profil dokter ke user existing. Hanya SUPER_ADMIN. Otomatis update role user ke DOKTER.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, specialization, licenseNumber, schedule]
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                  description: ID user yang akan dijadikan dokter
+                specialization:
+                  type: string
+                  example: Dokter Umum
+                licenseNumber:
+                  type: string
+                  example: SIP-DU-001-2024
+                schedule:
+                  type: object
+                  description: Key adalah nama hari dalam bahasa Inggris lowercase, value adalah [jamBuka, jamTutup]
+                  example:
+                    monday: ["08:00", "16:00"]
+                    tuesday: ["08:00", "16:00"]
+                    friday: ["08:00", "12:00"]
+      responses:
+        '201':
+          description: Profil dokter berhasil dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Doctor'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/doctors/me:
+    get:
+      tags: [Doctors]
+      summary: Get profil dokter sendiri
+      description: Hanya DOKTER yang bisa akses
+      responses:
+        '200':
+          description: Profil dokter berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Doctor'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/doctors/{id}:
+    get:
+      tags: [Doctors]
+      summary: Get detail dokter by ID
+      description: Include preview 10 appointment aktif terdekat
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detail dokter berhasil diambil
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Doctors]
+      summary: Update profil dokter
+      description: Hanya SUPER_ADMIN
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                specialization:
+                  type: string
+                  example: Dokter Spesialis Anak
+                licenseNumber:
+                  type: string
+                  example: SIP-SA-001-2024
+                schedule:
+                  type: object
+                  example:
+                    monday: ["09:00", "15:00"]
+                    thursday: ["09:00", "15:00"]
+      responses:
+        '200':
+          description: Profil dokter berhasil diupdate
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Doctors]
+      summary: Hapus profil dokter
+      description: Hanya SUPER_ADMIN. Tidak bisa hapus jika masih ada appointment aktif. Role user dikembalikan ke PASIEN.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Profil dokter berhasil dihapus
+        '400':
+          description: Masih ada appointment aktif
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/doctors/{id}/appointments:
+    get:
+      tags: [Doctors]
+      summary: Get appointment dokter
+      description: DOKTER hanya bisa lihat appointment miliknya
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: date
+          schema:
+            type: string
+            format: date
+          example: "2025-06-10"
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [MENUNGGU, DIPANGGIL, SELESAI, DIBATALKAN]
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Appointment dokter berhasil diambil
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'

@@ -15,6 +15,8 @@ import prescriptionsRoutes from './modules/prescriptions/prescriptions.routes.js
 import billingsRoutes from './modules/billings/billings.routes.js';
 import { globalLimiter } from './middlewares/rateLimiter.js';
 import { env } from './config/env.js';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from '../docs/swagger.js';
 
 const app = express();
 
@@ -32,6 +34,15 @@ app.use(globalLimiter);
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', app: env.APP_NAME });
 });
+
+// Swagger docs
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customSiteTitle: 'Klinik API Docs',
+  customCss: '.swagger-ui .topbar { display: none }',
+  swaggerOptions: {
+    persistAuthorization: true,
+  },
+}));
 
 // Routes
 app.use('/api/auth', authRoutes);
