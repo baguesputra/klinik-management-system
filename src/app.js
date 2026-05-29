@@ -17,11 +17,47 @@ import { globalLimiter } from './middlewares/rateLimiter.js';
 import { env } from './config/env.js';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from '../docs/swagger.js';
+import redoc from 'redoc-express';
 
 const app = express();
 
 // Security & utilities
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "https://unpkg.com",
+        "https://cdn.jsdelivr.net",
+      ],
+      styleSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "https://unpkg.com",
+        "https://fonts.googleapis.com",
+      ],
+      fontSrc: [
+        "'self'",
+        "https://fonts.gstatic.com",
+      ],
+      imgSrc: [
+        "'self'",
+        "data:",
+        "https://unpkg.com",
+      ],
+      connectSrc: [
+        "'self'",
+        "https://unpkg.com",
+      ],
+      workerSrc: [
+        "'self'",
+        "blob:",
+      ],
+    },
+  },
+}));
 app.use(cors({ origin: env.APP_URL, credentials: true }));
 app.use(morgan('dev'));
 app.use(express.json());
@@ -35,12 +71,131 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', app: env.APP_NAME });
 });
 
-// Swagger docs
+// Docs navigation
+app.get('/docs', (req, res) => {
+  res.json({
+    swagger_ui: `${env.APP_URL}/api-docs`,
+    redoc: `${env.APP_URL}/redoc`,
+    spec_json: `${env.APP_URL}/api-docs/swagger.json`,
+  });
+});
+
+// ── Static files (logo, favicon) ─────────────────────
+app.use(express.static('public'));
+
+// ── Expose swagger spec as JSON untuk ReDoc ───────────
+app.get('/api-docs/swagger.json', (req, res) => {
+  res.json(swaggerSpec);
+});
+
+
+// ── Swagger UI — untuk try out ────────────────────────
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  customSiteTitle: 'Klinik API Docs',
-  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Klinik API — Swagger UI',
+  customCss: `
+    .swagger-ui .topbar { display: none }
+    .swagger-ui .info .title { color: #334155; font-family: system-ui }
+    .swagger-ui .btn.authorize {
+      background: #334155;
+      border-color: #334155;
+      color: white;
+    }
+    .swagger-ui .btn.authorize:hover { background: #1e293b }
+    .swagger-ui .opblock.opblock-post .opblock-summary-method { background: #334155 }
+    .swagger-ui .opblock.opblock-get .opblock-summary-method { background: #0891b2 }
+    .swagger-ui .opblock.opblock-patch .opblock-summary-method { background: #64748b }
+    .swagger-ui .opblock.opblock-delete .opblock-summary-method { background: #475569 }
+    .swagger-ui .opblock.opblock-post { border-color: #334155 }
+    .swagger-ui .opblock.opblock-get { border-color: #0891b2 }
+    body { background: #f8fafc }
+  `,
   swaggerOptions: {
     persistAuthorization: true,
+    displayRequestDuration: true,
+    filter: true,
+    deepLinking: true,
+  },
+}));
+
+// ── ReDoc — untuk dokumentasi yang dibaca ────────────
+app.get('/redoc', redoc({
+  title: 'Klinik Management System — API Docs',
+  specUrl: '/api-docs/swagger.json',
+  nonce: '',
+  redocOptions: {
+    theme: {
+      colors: {
+        primary: {
+          main: '#334155',
+        },
+        text: {
+          primary: '#1e293b',
+          secondary: '#64748b',
+        },
+        border: {
+          dark: '#cbd5e1',
+          light: '#f1f5f9',
+        },
+        responses: {
+          success: {
+            color: '#16a34a',
+            backgroundColor: '#f0fdf4',
+          },
+          error: {
+            color: '#dc2626',
+            backgroundColor: '#fef2f2',
+          },
+          redirect: {
+            color: '#0891b2',
+            backgroundColor: '#ecfeff',
+          },
+          info: {
+            color: '#334155',
+            backgroundColor: '#f8fafc',
+          },
+        },
+        http: {
+          get: '#0891b2',
+          post: '#334155',
+          put: '#64748b',
+          patch: '#475569',
+          delete: '#94a3b8',
+        },
+      },
+      typography: {
+        fontSize: '15px',
+        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+        headings: {
+          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+          fontWeight: '600',
+        },
+        code: {
+          fontSize: '13px',
+          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+          backgroundColor: '#f1f5f9',
+          color: '#334155',
+        },
+      },
+      sidebar: {
+        width: '280px',
+        backgroundColor: '#f8fafc',
+        textColor: '#334155',
+      },
+      rightPanel: {
+        backgroundColor: '#1e293b',
+        textColor: '#e2e8f0',
+      },
+      logo: {
+        gutter: '24px',
+      },
+    },
+    hideDownloadButton: false,
+    disableSearch: false,
+    expandResponses: '200,201',
+    sortPropsAlphabetically: false,
+    showExtensions: false,
+    nativeScrollbars: false,
+    pathInMiddlePanel: false,
   },
 }));
 

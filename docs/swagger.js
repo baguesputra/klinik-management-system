@@ -1,5 +1,4 @@
 // docs/swagger.js
-import swaggerJsdoc from 'swagger-jsdoc';
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -7,16 +6,15 @@ import yaml from 'js-yaml';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// ── Load YAML helper ──────────────────────────────────
 const loadYaml = (filePath) => {
   return yaml.load(readFileSync(resolve(__dirname, filePath), 'utf8'));
 };
 
-// ── Load semua components ─────────────────────────────
+// ── Load components ───────────────────────────────────
 const schemas = loadYaml('./components/schemas.yaml');
 const responses = loadYaml('./components/responses.yaml');
 
-// ── Load semua paths ──────────────────────────────────
+// ── Load paths ────────────────────────────────────────
 const authPaths = loadYaml('./paths/auth.yaml');
 const usersPaths = loadYaml('./paths/users.yaml');
 const patientsPaths = loadYaml('./paths/patients.yaml');
@@ -26,42 +24,73 @@ const medicinesPaths = loadYaml('./paths/medicines.yaml');
 const prescriptionsPaths = loadYaml('./paths/prescriptions.yaml');
 const billingsPaths = loadYaml('./paths/billings.yaml');
 
-// ── Swagger definition ────────────────────────────────
 export const swaggerSpec = {
   openapi: '3.0.0',
   info: {
-    title: 'Klinik Management System API',
+    title: 'Klinik Management System',
     version: '1.0.0',
     description: `
 ## Klinik Management System
 
-REST API untuk manajemen klinik dan apotek yang mencakup:
-- Autentikasi JWT & Google OAuth2
-- Manajemen pengguna dengan RBAC 6 role
-- Pendaftaran pasien & rekam medis
-- Jadwal dokter & antrian appointment
-- Inventaris obat & mutasi stok
-- Resep & dispensing
-- Billing, pembayaran & laporan keuangan
+A production-grade REST API for clinic and pharmacy management, covering the full patient journey from registration and doctor consultation to prescription dispensing and billing.
 
-## Autentikasi
+## Authentication
 
-Semua endpoint private membutuhkan Bearer token di header:
+All private endpoints require a Bearer token in the request header:
 \`\`\`
 Authorization: Bearer <accessToken>
 \`\`\`
 
-Token didapat dari endpoint \`POST /api/auth/login\` atau \`GET /api/auth/google\`.
+Obtain your token from \`POST /api/auth/login\` or \`GET /api/auth/google\`.
+
+## Roles & Permissions
+
+| Role | Description |
+|---|---|
+| \`SUPER_ADMIN\` | Full system access |
+| \`ADMIN_KLINIK\` | Patient registration, appointment management |
+| \`DOKTER\` | Medical records, prescriptions |
+| \`APOTEKER\` | Medicine inventory, dispensing |
+| \`KASIR\` | Billing and payment processing |
+| \`PASIEN\` | View own records and appointments |
 
 ## Rate Limiting
 
-| Endpoint | Limit |
-|---|---|
-| POST /api/auth/login | 5x per 15 menit |
-| POST /api/auth/register | 3x per jam |
-| POST /api/auth/refresh | 10x per 15 menit |
-| Semua endpoint | 100x per 15 menit |
-| PDF & Laporan | 20x per jam |
+| Endpoint | Limit | Window |
+|---|---|---|
+| POST /api/auth/login | 5 requests | 15 minutes |
+| POST /api/auth/register | 3 requests | 1 hour |
+| POST /api/auth/refresh | 10 requests | 15 minutes |
+| PDF & Reports | 20 requests | 1 hour |
+| All other endpoints | 100 requests | 15 minutes |
+
+## Response Format
+
+All endpoints return a consistent response format:
+\`\`\`json
+{
+  "success": true,
+  "message": "Operation successful",
+  "data": { ... }
+}
+\`\`\`
+
+Paginated responses include an additional \`pagination\` field:
+\`\`\`json
+{
+  "success": true,
+  "message": "Success",
+  "data": [...],
+  "pagination": {
+    "total": 100,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 10,
+    "hasNextPage": true,
+    "hasPrevPage": false
+  }
+}
+\`\`\`
     `,
     contact: {
       name: 'Klinik Management System',
@@ -70,6 +99,12 @@ Token didapat dari endpoint \`POST /api/auth/login\` atau \`GET /api/auth/google
     license: {
       name: 'MIT',
       url: 'https://opensource.org/licenses/MIT',
+    },
+    // ── ReDoc logo ──────────────────────────────────
+    'x-logo': {
+      url: '/logo.svg',
+      altText: 'Klinik Management System',
+      href: '/api-docs/redoc',
     },
   },
   servers: [
@@ -83,14 +118,38 @@ Token didapat dari endpoint \`POST /api/auth/login\` atau \`GET /api/auth/google
     },
   ],
   tags: [
-    { name: 'Auth', description: 'Autentikasi & otorisasi' },
-    { name: 'Users', description: 'Manajemen pengguna' },
-    { name: 'Patients', description: 'Manajemen pasien & rekam medis' },
-    { name: 'Doctors', description: 'Profil dokter & jadwal' },
-    { name: 'Appointments', description: 'Appointment & antrian' },
-    { name: 'Medicines', description: 'Inventaris obat & mutasi stok' },
-    { name: 'Prescriptions', description: 'Resep & dispensing' },
-    { name: 'Billings', description: 'Billing, pembayaran & laporan keuangan' },
+    {
+      name: 'Auth',
+      description: 'Authentication and authorization endpoints — register, login, OAuth2, token management',
+    },
+    {
+      name: 'Users',
+      description: 'User management — CRUD, role assignment, account activation',
+    },
+    {
+      name: 'Patients',
+      description: 'Patient profiles and medical records management',
+    },
+    {
+      name: 'Doctors',
+      description: 'Doctor profiles, specializations, and schedule management',
+    },
+    {
+      name: 'Appointments',
+      description: 'Appointment booking and queue management with auto queue numbering',
+    },
+    {
+      name: 'Medicines',
+      description: 'Medicine inventory, stock mutations, and expiry tracking',
+    },
+    {
+      name: 'Prescriptions',
+      description: 'Prescription creation, processing, and dispensing workflow',
+    },
+    {
+      name: 'Billings',
+      description: 'Invoice generation, payment processing, void requests, and financial reports',
+    },
   ],
   components: {
     securitySchemes: {
@@ -98,7 +157,7 @@ Token didapat dari endpoint \`POST /api/auth/login\` atau \`GET /api/auth/google
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
-        description: 'Masukkan access token dari login',
+        description: 'Enter your access token obtained from the login endpoint',
       },
     },
     schemas: schemas.components.schemas,
