@@ -6,17 +6,23 @@ import { generateAccessToken } from '../../src/utils/jwt.js';
 // ── User factories ────────────────────────────────────
 
 export const createUser = async (overrides = {}) => {
+  let password = overrides.password;
+  if (password && !password.startsWith('$2')) {
+    password = await bcrypt.hash(password, 12);
+  } else if (!password) {
+    password = await bcrypt.hash('TestPass123', 12);
+  }
+
   const defaults = {
     name: 'Test User',
     email: `test.${Date.now()}@example.com`,
-    password: await bcrypt.hash('TestPass123', 12),
     role: 'PASIEN',
     isActive: true,
     isVerified: true,
   };
 
   return prisma.user.create({
-    data: { ...defaults, ...overrides },
+    data: { ...defaults, ...overrides, password },
   });
 };
 
@@ -51,13 +57,20 @@ export const getAuthHeader = (user) => ({
 // ── Doctor factory ────────────────────────────────────
 
 export const createDoctor = async (overrides = {}) => {
-  const user = overrides.userId
-    ? await prisma.user.findUnique({ where: { id: overrides.userId } })
-    : await createDokter();
+  // Kalau userId sudah ada di overrides, pakai langsung
+  // Kalau tidak, buat user baru
+  const userId = overrides.userId;
+  
+  if (!userId) {
+    const user = await createDokter();
+    overrides.userId = user.id;
+  }
+
+  const { userId: uid, ...rest } = overrides;
 
   return prisma.doctor.create({
     data: {
-      userId: user.id,
+      userId: uid,
       specialization: 'Dokter Umum',
       licenseNumber: `SIP-${Date.now()}`,
       consultFee: 150000,
@@ -70,7 +83,7 @@ export const createDoctor = async (overrides = {}) => {
         saturday: ['08:00', '12:00'],
         sunday: ['08:00', '12:00'],
       },
-      ...overrides,
+      ...rest,
     },
     include: { user: true },
   });
@@ -79,8 +92,10 @@ export const createDoctor = async (overrides = {}) => {
 // ── Patient factory ───────────────────────────────────
 
 export const createPatient = async (overrides = {}) => {
-  const user = overrides.userId
-    ? await prisma.user.findUnique({ where: { id: overrides.userId } })
+  const { userId, ...patientData } = overrides;
+
+  const user = userId
+    ? await prisma.user.findUnique({ where: { id: userId } })
     : await createPasien();
 
   return prisma.patient.create({
@@ -90,7 +105,7 @@ export const createPatient = async (overrides = {}) => {
       gender: 'LAKI_LAKI',
       address: 'Jl. Test No. 1',
       bloodType: 'A',
-      ...overrides,
+      ...patientData,
     },
     include: { user: true },
   });
@@ -116,13 +131,21 @@ export const createMedicine = async (overrides = {}) => {
 // ── Appointment factory ───────────────────────────────
 
 export const createAppointment = async (overrides = {}) => {
-  const patient = overrides.patientId
-    ? { id: overrides.patientId }
-    : await createPatient();
+  const { patientId, doctorId, ...appointmentData } = overrides;
 
-  const doctor = overrides.doctorId
-    ? { id: overrides.doctorId }
-    : await createDoctor();
+  // Resolve patient — cari dari DB kalau patientId ada
+  let resolvedPatientId = patientId;
+  if (!resolvedPatientId) {
+    const newPatient = await createPatient();
+    resolvedPatientId = newPatient.id;
+  }
+
+  // Resolve doctor — cari dari DB kalau doctorId ada
+  let resolvedDoctorId = doctorId;
+  if (!resolvedDoctorId) {
+    const newDoctor = await createDoctor();
+    resolvedDoctorId = newDoctor.id;
+  }
 
   // Next monday untuk pastikan dokter praktek
   const nextMonday = new Date();
@@ -131,13 +154,13 @@ export const createAppointment = async (overrides = {}) => {
 
   return prisma.appointment.create({
     data: {
-      patientId: patient.id,
-      doctorId: doctor.id,
+      patientId: resolvedPatientId,
+      doctorId: resolvedDoctorId,
       date: nextMonday,
       queueNumber: 1,
       complaint: 'Test complaint',
       status: 'MENUNGGU',
-      ...overrides,
+      ...appointmentData,
     },
     include: {
       patient: { include: { user: true } },

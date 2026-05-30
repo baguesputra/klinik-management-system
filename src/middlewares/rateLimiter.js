@@ -4,7 +4,13 @@ import { RedisStore } from 'rate-limit-redis';
 import { redis } from '../config/redis.js';
 
 // ── Helper buat limiter ───────────────────────────────
+const isTest = process.env.NODE_ENV === 'test';
+
 const createLimiter = (options) => {
+
+   if (isTest) {
+    return (req, res, next) => next();
+  }
   return rateLimit({
     windowMs: options.windowMs,
     max: options.max,
