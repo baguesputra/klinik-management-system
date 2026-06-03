@@ -83,12 +83,12 @@ jobs:
           NODE_ENV: test
           PORT: 3001
           APP_NAME: Klinik Management System Test
-          APP_URL: https://klinik-management-system.up.railway.app
-          FRONTEND_URL: https://klinik-management-system.up.railway.app
-          DATABASE_URL: postgresql://postgres:zNxubzGYGAZqeoclzBSoCHivxwnBUvgr@postgres.railway.internal:5432/railway
-          REDIS_HOST: redis-host.railway.internal
+          APP_URL: http://localhost:3001
+          FRONTEND_URL: http://localhost:5173
+          DATABASE_URL: postgresql://klinik_user:klinik_password@localhost:5432/klinik_test_db
+          REDIS_HOST: localhost
           REDIS_PORT: 6379
-          REDIS_PASSWORD: BuONgivoiefBnyBRDxSUjcngAAvobyHA
+          REDIS_PASSWORD: redis_password
           JWT_ACCESS_SECRET: ci_test_access_secret_minimum_32_characters
           JWT_REFRESH_SECRET: ci_test_refresh_secret_minimum_32_characters
           JWT_ACCESS_EXPIRES: 15m
