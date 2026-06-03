@@ -1,0 +1,134 @@
+# .github/workflows/ci.yml
+name: CI/CD Pipeline
+
+# ── Kapan pipeline ini jalan ─────────────────────────
+on:
+  push:
+    branches:
+      - main      # push ke main → test + deploy
+      - develop   # push ke develop → test saja
+  pull_request:
+    branches:
+      - main      # PR ke main → test saja, tidak deploy
+
+# ── Jobs ─────────────────────────────────────────────
+jobs:
+
+  # ── Job 1: Test ─────────────────────────────────────
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest  # pakai mesin Ubuntu yang disediakan GitHub
+
+    # Service containers — PostgreSQL dan Redis jalan sebagai Docker container
+    # selama test berlangsung, otomatis dihapus setelah selesai
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: klinik_user
+          POSTGRES_PASSWORD: klinik_password
+          POSTGRES_DB: klinik_test_db
+        ports:
+          - 5432:5432
+        # Tunggu sampai PostgreSQL siap menerima koneksi
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        env:
+          REDIS_PASSWORD: redis_password
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        command: redis-server --requirepass redis_password
+
+    steps:
+      # Step 1 — Checkout kode dari repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2 — Setup Node.js versi 24
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'  # cache node_modules agar install lebih cepat
+
+      # Step 3 — Install dependencies
+      - name: Install dependencies
+        run: npm ci  # npm ci lebih strict dari npm install, cocok untuk CI
+
+      # Step 4 — Generate Prisma client
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      # Step 5 — Jalankan migrasi ke test database
+      - name: Run database migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://klinik_user:klinik_password@localhost:5432/klinik_test_db
+
+      # Step 6 — Jalankan semua test dengan coverage
+      - name: Run tests with coverage
+        run: npm run test:ci:coverage
+        env:
+          NODE_ENV: test
+          PORT: 3001
+          APP_NAME: Klinik Management System Test
+          APP_URL: http://localhost:3001
+          FRONTEND_URL: http://localhost:5173
+          DATABASE_URL: postgresql://klinik_user:klinik_password@localhost:5432/klinik_test_db
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          REDIS_PASSWORD: redis_password
+          JWT_ACCESS_SECRET: ci_test_access_secret_minimum_32_characters
+          JWT_REFRESH_SECRET: ci_test_refresh_secret_minimum_32_characters
+          JWT_ACCESS_EXPIRES: 15m
+          JWT_REFRESH_EXPIRES: 7d
+          GOOGLE_CLIENT_ID: test_google_client_id
+          GOOGLE_CLIENT_SECRET: test_google_client_secret
+          GOOGLE_CALLBACK_URL: http://localhost:3001/api/auth/google/callback
+
+      # Step 7 — Upload coverage report sebagai artifact
+      # Bisa didownload dari tab Actions di GitHub
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()  # upload meskipun test ada yang fail
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7  # simpan 7 hari
+
+  # ── Job 2: Deploy ────────────────────────────────────
+  # Hanya jalan kalau:
+  # 1. Job test berhasil (needs: test)
+  # 2. Branch-nya main (if condition)
+  # 3. Bukan dari Pull Request
+  deploy:
+    name: Deploy to Railway
+    runs-on: ubuntu-latest
+    needs: test  # tunggu job test selesai dulu
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      # Step 1 — Checkout kode
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2 — Install Railway CLI
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      # Step 3 — Deploy ke Railway
+      - name: Deploy to Railway
+        run: railway up --service ${{ secrets.RAILWAY_SERVICE_NAME }}
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
