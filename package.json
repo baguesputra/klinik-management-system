@@ -22,7 +22,9 @@
     "test:unit": "dotenv -e .env.test -- node --experimental-vm-modules node_modules/jest/bin/jest.js tests/unit",
     "test:integration": "dotenv -e .env.test -- node --experimental-vm-modules node_modules/jest/bin/jest.js tests/integration --runInBand",
     "lint": "eslint src/",
-    "format": "prettier --write src/"
+    "format": "prettier --write src/",
+    "test:ci": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --passWithNoTests",
+    "test:ci:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --coverage --passWithNoTests"
   },
   "jest": {
     "testEnvironment": "node",

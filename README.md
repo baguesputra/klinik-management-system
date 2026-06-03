@@ -1,5 +1,12 @@
 # 🏥 Klinik Management System
 
+![CI/CD](https://github.com/baguesputra/klinik-management-system/actions/workflows/ci.yml/badge.svg)
+![Node.js](https://img.shields.io/badge/Node.js-24.x-green)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)
+![Redis](https://img.shields.io/badge/Redis-7-red)
+![License](https://img.shields.io/badge/License-MIT-yellow)
+![Coverage](https://img.shields.io/badge/coverage-50%25-yellow)
+
 A production-grade clinic and pharmacy management REST API built with Node.js, Express, PostgreSQL, and Redis.
 
 ![Node.js](https://img.shields.io/badge/Node.js-24.x-green)
