@@ -25,34 +25,38 @@
     "format": "prettier --write src/"
   },
   "jest": {
-  "testEnvironment": "node",
-  "moduleNameMapper": {
-    "^(\\.{1,2}/.*)\\.js$": "$1"
-  },
-  "testMatch": [
-    "**/tests/**/*.test.js"
-  ],
-  "setupFilesAfterEnv": [
-    "./tests/helpers/setup.js"
-  ],
-  "globalSetup": "./tests/helpers/globalSetup.js",
-  "globalTeardown": "./tests/helpers/globalTeardown.js",
-  "coverageThreshold": {
-    "global": {
-      "branches": 50,
-      "functions": 50,
-      "lines": 50,
-      "statements": 50
-    }
-  },
-  "coverageReporters": ["text", "lcov", "html"],
-  "collectCoverageFrom": [
-    "src/modules/**/*.service.js",
-    "src/modules/**/*.controller.js",
-    "src/middlewares/**/*.js",
-    "!src/config/**"
-  ],
-  "testTimeout": 30000
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^(\\.{1,2}/.*)\\.js$": "$1"
+    },
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "setupFilesAfterEnv": [
+      "./tests/helpers/setup.js"
+    ],
+    "globalSetup": "./tests/helpers/globalSetup.js",
+    "globalTeardown": "./tests/helpers/globalTeardown.js",
+    "coverageThreshold": {
+      "global": {
+        "branches": 50,
+        "functions": 50,
+        "lines": 50,
+        "statements": 50
+      }
+    },
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ],
+    "collectCoverageFrom": [
+      "src/modules/**/*.service.js",
+      "src/modules/**/*.controller.js",
+      "src/middlewares/**/*.js",
+      "!src/config/**"
+    ],
+    "testTimeout": 30000
   },
   "keywords": [],
   "author": "",
@@ -64,7 +68,6 @@
     "cloudinary": "^2.10.0",
     "connect-redis": "^9.0.0",
     "cors": "^2.8.6",
-    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.2",
     "helmet": "^8.1.0",
