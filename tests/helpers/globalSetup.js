@@ -5,14 +5,16 @@ import { readFileSync, writeFileSync, renameSync, existsSync } from 'fs';
 export default async function globalSetup() {
   console.log('\n🧪 Setting up test environment...');
 
-  // Di CI tidak ada .env file — langsung jalankan migrasi
-  // karena DATABASE_URL sudah di-inject via environment
+  // Di CI — .env tidak ada, DATABASE_URL sudah di-inject via env
   if (!existsSync('.env')) {
     try {
-      execSync('npx prisma migrate deploy', { stdio: 'inherit' });
+      execSync('npx prisma migrate deploy', {
+        stdio: 'inherit',
+        env: { ...process.env }, // pakai DATABASE_URL dari environment
+      });
       console.log('✅ Test database ready\n');
     } catch (err) {
-      console.error('❌ Failed to setup test database:', err);
+      console.error('❌ Failed to setup test database:', err.message);
       process.exit(1);
     }
     return;
@@ -26,7 +28,7 @@ export default async function globalSetup() {
     execSync('npx prisma migrate deploy', { stdio: 'inherit' });
     console.log('✅ Test database ready\n');
   } catch (err) {
-    console.error('❌ Failed to setup test database:', err);
+    console.error('❌ Failed to setup test database:', err.message);
   } finally {
     renameSync('.env.backup', '.env');
   }
