@@ -20,7 +20,8 @@ import { swaggerSpec } from '../docs/swagger.js';
 import redoc from 'redoc-express';
 
 const app = express();
-
+// Trust proxy — wajib untuk Railway/Render/platform lain di balik reverse proxy
+app.set('trust proxy', 1);
 // Security & utilities
 app.use(helmet({
   contentSecurityPolicy: {
