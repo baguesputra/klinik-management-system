@@ -7,50 +7,13 @@
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 ![Coverage](https://img.shields.io/badge/coverage-50%25-yellow)
 
-A production-grade clinic and pharmacy management REST API built with Node.js, Express, PostgreSQL, and Redis.
+REST API untuk sistem manajemen klinik berbasis Node.js dengan fitur lengkap mulai dari manajemen pasien, dokter, antrian, resep, hingga billing dengan dukungan BPJS dan asuransi swasta.
 
-![Node.js](https://img.shields.io/badge/Node.js-24.x-green)
-![Express](https://img.shields.io/badge/Express-4.x-lightgrey)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)
-![Redis](https://img.shields.io/badge/Redis-7-red)
-![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+**🌐 Live Demo:** https://klinik-management-system-production.up.railway.app
 
----
+**📖 API Docs:** https://klinik-management-system-production.up.railway.app/api-docs
 
-## 📋 Table of Contents
-
-- [Overview](#overview)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Roles & Permissions](#roles--permissions)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Environment Variables](#environment-variables)
-- [API Endpoints](#api-endpoints)
-- [Database Schema](#database-schema)
-- [Development Progress](#development-progress)
-- [License](#license)
-
----
-
-## Overview
-
-Klinik Management System is a RESTful API designed for small clinics and pharmacies in Indonesia. It covers the full patient journey — from registration and doctor consultation to prescription dispensing and billing — in a single integrated system.
-
----
-
-## Features
-
-- **Authentication** — JWT Access/Refresh Token, Google OAuth2, token rotation & blacklisting via Redis
-- **Authorization** — Role-Based Access Control (RBAC) with 6 distinct roles
-- **User Management** — Full CRUD, role assignment, account activation by Super Admin
-- **Patient Management** — Registration, medical records, history *(coming soon)*
-- **Doctor & Scheduling** — Doctor profiles, appointment queuing *(coming soon)*
-- **Pharmacy** — Medicine inventory, stock tracking, prescription dispensing *(coming soon)*
-- **Billing** — Invoice generation, multiple payment methods *(coming soon)*
-- **Rate Limiting** — Redis-backed per-route throttling *(coming soon)*
-- **API Documentation** — Swagger / OpenAPI 3.0 *(coming soon)*
+**📚 ReDoc:** https://klinik-management-system-production.up.railway.app/redoc
 
 ---
 
@@ -58,30 +21,151 @@ Klinik Management System is a RESTful API designed for small clinics and pharmac
 
 | Layer | Technology |
 |---|---|
-| Runtime | Node.js 24 LTS |
+| Runtime | Node.js 24 |
 | Framework | Express.js |
 | Database | PostgreSQL 16 |
 | ORM | Prisma |
 | Cache / Session | Redis 7 |
-| Validation | Zod |
-| Authentication | JWT + Passport.js |
-| OAuth2 | Google OAuth2 via Passport |
-| Containerization | Docker & Docker Compose |
-| Testing | Jest + Supertest *(coming soon)* |
-| API Docs | Swagger / OpenAPI 3.0 *(coming soon)* |
+| Auth | JWT + Google OAuth2 |
+| API Docs | Swagger UI + ReDoc |
+| Testing | Jest |
+| CI/CD | GitHub Actions |
+| Deploy | Railway |
+
+---
+
+## Features
+
+### Core Modules
+- **Auth** — JWT access/refresh token, Google OAuth2, token blacklisting via Redis
+- **RBAC** — 6 roles: Super Admin, Admin Klinik, Dokter, Apoteker, Kasir, Pasien
+- **Pasien** — CRUD pasien, rekam medis, nomor rekam medis otomatis
+- **Dokter** — profil dokter, jadwal praktik per hari, tarif konsultasi
+- **Appointment** — booking antrian, nomor antrian otomatis, status state machine
+- **Inventori Obat** — CRUD obat, tracking stok, mutasi stok (masuk/keluar/adjustment), notifikasi stok rendah, tracking expired
+- **Resep** — siklus hidup resep lengkap, dispensing sebagian, state machine status
+- **Billing** — invoice otomatis, dua tahap (konsultasi + obat), dukungan BPJS, asuransi swasta, multi metode pembayaran, void approval workflow
+
+### Technical Features
+- Rate limiting per endpoint berbasis Redis
+- Dual API documentation (Swagger UI + ReDoc)
+- PDF invoice generation via pdfkit
+- Audit log untuk semua operasi kritikal
+- Soft delete untuk appointment dan obat
+- Database transaction untuk operasi kritikal
+- CI/CD pipeline dengan GitHub Actions
 
 ---
 
 ## Roles & Permissions
 
-| Role | Description |
+| Role | Akses |
 |---|---|
-| `SUPER_ADMIN` | Full system access — user management, role assignment |
-| `ADMIN_KLINIK` | Patient registration, appointment management |
-| `DOKTER` | View patients, input medical records, write prescriptions |
-| `APOTEKER` | Medicine inventory, stock mutations, prescription dispensing |
-| `KASIR` | Billing, invoice generation, payment processing |
-| `PASIEN` | View own records, book appointments |
+| `SUPER_ADMIN` | Full akses semua fitur |
+| `ADMIN_KLINIK` | Manajemen user, laporan |
+| `DOKTER` | Appointment, rekam medis, resep |
+| `APOTEKER` | Inventori obat, dispensing resep |
+| `KASIR` | Billing, pembayaran |
+| `PASIEN` | Booking appointment, lihat billing sendiri |
+
+---
+
+## API Endpoints
+
+### Auth
+```
+POST   /api/auth/register
+POST   /api/auth/login
+POST   /api/auth/refresh
+POST   /api/auth/logout
+GET    /api/auth/me
+GET    /api/auth/google
+GET    /api/auth/google/callback
+```
+
+### Users
+```
+GET    /api/users
+GET    /api/users/:id
+PATCH  /api/users/:id
+DELETE /api/users/:id
+```
+
+### Patients
+```
+GET    /api/patients
+POST   /api/patients
+GET    /api/patients/:id
+PATCH  /api/patients/:id
+DELETE /api/patients/:id
+GET    /api/patients/:id/medical-records
+POST   /api/patients/:id/medical-records
+```
+
+### Doctors
+```
+GET    /api/doctors
+POST   /api/doctors
+GET    /api/doctors/:id
+PATCH  /api/doctors/:id
+DELETE /api/doctors/:id
+```
+
+### Appointments
+```
+GET    /api/appointments
+POST   /api/appointments
+GET    /api/appointments/:id
+PATCH  /api/appointments/:id/status
+DELETE /api/appointments/:id
+```
+
+### Medicines
+```
+GET    /api/medicines
+POST   /api/medicines
+GET    /api/medicines/:id
+PATCH  /api/medicines/:id
+DELETE /api/medicines/:id
+POST   /api/medicines/:id/mutations
+GET    /api/medicines/:id/mutations
+```
+
+### Prescriptions
+```
+GET    /api/prescriptions
+POST   /api/prescriptions
+GET    /api/prescriptions/:id
+PATCH  /api/prescriptions/:id
+PATCH  /api/prescriptions/:id/status
+POST   /api/prescriptions/:id/dispense
+```
+
+### Billings
+```
+GET    /api/billings
+POST   /api/billings
+GET    /api/billings/:id
+PATCH  /api/billings/:id/medicine-fee
+POST   /api/billings/:id/payments
+POST   /api/billings/:id/payments/:paymentId/void
+PATCH  /api/billings/:id/payments/:paymentId/void
+GET    /api/billings/:id/invoice
+GET    /api/billings/report/daily
+GET    /api/billings/report/monthly
+GET    /api/billings/my
+```
+
+---
+
+## Payment Methods
+
+| Kategori | Metode |
+|---|---|
+| Tunai | TUNAI |
+| Transfer Bank | BRI, BNI, BCA, MANDIRI, BSI |
+| E-Wallet | QRIS, OVO, GOPAY, DANA, SHOPEEPAY |
+| Asuransi | BPJS, ASURANSI_SWASTA |
 
 ---
 
@@ -89,40 +173,49 @@ Klinik Management System is a RESTful API designed for small clinics and pharmac
 
 ```
 klinik-management-system/
-├── prisma/
-│   ├── schema.prisma         # Full database schema
-│   └── seed.js               # Database seeder
 ├── src/
+│   ├── app.js
 │   ├── config/
-│   │   ├── database.js       # Prisma client
-│   │   ├── redis.js          # Redis client
-│   │   ├── passport.js       # Google OAuth2 strategy
-│   │   └── env.js            # Environment validation (Zod)
-│   ├── modules/
-│   │   ├── auth/             # Register, login, OAuth2, refresh, logout
-│   │   ├── users/            # User CRUD, role management
-│   │   ├── patients/         # Patient profiles & medical records
-│   │   ├── doctors/          # Doctor profiles & schedules
-│   │   ├── appointments/     # Queue & appointment management
-│   │   ├── medicines/        # Inventory & stock tracking
-│   │   ├── prescriptions/    # Prescriptions & dispensing
-│   │   ├── billing/          # Invoices & payments
-│   │   └── reports/          # Reporting & analytics
+│   │   ├── database.js
+│   │   ├── redis.js
+│   │   ├── env.js
+│   │   └── passport.js
 │   ├── middlewares/
-│   │   ├── auth.middleware.js    # JWT verification + blacklist check
-│   │   ├── rbac.middleware.js    # Role-based access control
-│   │   ├── errorHandler.js       # Global error handler
-│   │   └── rateLimiter.js        # Redis rate limiting
+│   │   ├── auth.middleware.js
+│   │   ├── rbac.middleware.js
+│   │   ├── errorHandler.js
+│   │   └── rateLimiter.js
+│   ├── modules/
+│   │   ├── auth/
+│   │   ├── users/
+│   │   ├── patients/
+│   │   ├── doctors/
+│   │   ├── appointments/
+│   │   ├── medicines/
+│   │   ├── prescriptions/
+│   │   └── billings/
 │   └── utils/
-│       ├── ApiResponse.js        # Standardized response format
-│       ├── ApiError.js           # Custom error classes
-│       ├── jwt.js                # Token generate & verify
-│       └── pagination.js         # Pagination helpers
-├── tests/                        # Jest test suites
-├── docker-compose.yml
+│       ├── ApiError.js
+│       ├── ApiResponse.js
+│       ├── jwt.js
+│       └── pagination.js
+├── docs/
+│   ├── swagger.js
+│   ├── components/
+│   └── paths/
+├── tests/
+│   ├── helpers/
+│   ├── unit/
+│   └── integration/
+├── prisma/
+│   ├── schema.prisma
+│   ├── seed.js
+│   └── migrations/
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 ├── Dockerfile
-├── .env.example
-└── server.js
+└── docker-compose.yml
 ```
 
 ---
@@ -131,176 +224,132 @@ klinik-management-system/
 
 ### Prerequisites
 
-- Node.js 20+
-- Docker Desktop
+- Node.js 24+
+- PostgreSQL 16+
+- Redis 7+
+- Docker (optional)
 
-### Installation
+### Local Development
 
+**1. Clone repository**
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/klinik-management-system.git
+git clone https://github.com/baguesputra/klinik-management-system.git
 cd klinik-management-system
+```
 
-# Install dependencies
+**2. Install dependencies**
+```bash
 npm install
+```
 
-# Copy environment file and fill in your values
+**3. Setup environment variables**
+```bash
 cp .env.example .env
 ```
 
-### Run with Docker
-
-```bash
-# Start PostgreSQL and Redis containers
-npm run docker:up
-
-# Run database migration
-npm run db:migrate
-
-# Seed database with sample data
-npm run db:seed
-
-# Start development server
-npm run dev
-```
-
-Server runs at `http://localhost:3000`
-
-### Available Scripts
-
-| Script | Description |
-|---|---|
-| `npm run dev` | Start development server with hot reload |
-| `npm run start` | Start production server |
-| `npm run docker:up` | Start Docker containers |
-| `npm run docker:down` | Stop Docker containers |
-| `npm run docker:logs` | Stream container logs |
-| `npm run db:migrate` | Run Prisma migrations |
-| `npm run db:generate` | Generate Prisma client |
-| `npm run db:seed` | Seed database with sample data |
-| `npm run db:studio` | Open Prisma Studio |
-| `npm run test` | Run test suites |
-| `npm run lint` | Lint source files |
-| `npm run format` | Format source files |
-
----
-
-## Environment Variables
-
-Copy `.env.example` to `.env` and fill in the values:
-
+Edit `.env`:
 ```env
-# App
 NODE_ENV=development
 PORT=3000
 APP_NAME=Klinik Management System
 APP_URL=http://localhost:3000
 FRONTEND_URL=http://localhost:5173
 
-# Database
 DATABASE_URL=postgresql://user:password@localhost:5432/klinik_db
 
-# Redis
 REDIS_HOST=localhost
 REDIS_PORT=6379
-REDIS_PASSWORD=your_redis_password
+REDIS_PASSWORD=
 
-# JWT
-JWT_ACCESS_SECRET=your_access_secret_min_32_chars
-JWT_REFRESH_SECRET=your_refresh_secret_min_32_chars
+JWT_ACCESS_SECRET=your_access_secret_minimum_32_characters
+JWT_REFRESH_SECRET=your_refresh_secret_minimum_32_characters
 JWT_ACCESS_EXPIRES=15m
 JWT_REFRESH_EXPIRES=7d
 
-# Google OAuth2
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 GOOGLE_CALLBACK_URL=http://localhost:3000/api/auth/google/callback
 ```
 
----
+**4. Setup database**
+```bash
+npx prisma migrate deploy
+npx prisma db seed
+```
 
-## API Endpoints
+**5. Jalankan server**
+```bash
+npm run dev
+```
 
-### Auth
+Server berjalan di `http://localhost:3000`
 
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| POST | `/api/auth/register` | Public | Register new account |
-| POST | `/api/auth/login` | Public | Login with email & password |
-| POST | `/api/auth/refresh` | Public | Refresh access token |
-| POST | `/api/auth/logout` | Private | Logout & revoke tokens |
-| GET | `/api/auth/me` | Private | Get current user profile |
-| GET | `/api/auth/google` | Public | Initiate Google OAuth2 |
-| GET | `/api/auth/google/callback` | Public | Google OAuth2 callback |
+### Docker
 
-### Users
-
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| GET | `/api/users` | SUPER_ADMIN, ADMIN_KLINIK | List all users |
-| GET | `/api/users/:id` | SUPER_ADMIN, ADMIN_KLINIK | Get user detail |
-| POST | `/api/users` | SUPER_ADMIN | Create new user |
-| PATCH | `/api/users/:id` | SUPER_ADMIN | Update user profile |
-| PATCH | `/api/users/:id/role` | SUPER_ADMIN | Change user role |
-| PATCH | `/api/users/:id/toggle-active` | SUPER_ADMIN | Activate / deactivate user |
-| DELETE | `/api/users/:id` | SUPER_ADMIN | Delete user |
-
-### Patients *(Phase 5 — coming soon)*
-### Doctors & Appointments *(Phase 6 — coming soon)*
-### Medicines *(Phase 7 — coming soon)*
-### Prescriptions *(Phase 8 — coming soon)*
-### Billing *(Phase 9 — coming soon)*
+```bash
+docker-compose up -d
+```
 
 ---
 
-## Database Schema
+## Testing
 
-```
-users ──────────────── roles (enum)
-  │
-  ├── doctors ─────────────── appointments ──── patients
-  │                                │
-  ├── patients                     │
-  │     └── medical_records ───────┘
-  │               └── prescriptions ──── prescription_items ──── medicines
-  │                                                                   │
-  └── (all roles)                                          stock_mutations
+```bash
+# Unit tests
+npm run test:unit
 
-appointments ──── billings ──── payments
+# Integration tests
+npm run test:integration
+
+# All tests dengan coverage
+npm run test:coverage
 ```
 
-### Seed Credentials
+### Test Credentials (setelah seed)
 
 | Role | Email | Password |
 |---|---|---|
-| SUPER_ADMIN | superadmin@klinik.com | SuperAdmin123 |
-| ADMIN_KLINIK | admin@klinik.com | Admin1234 |
-| DOKTER | dokter@klinik.com | Dokter1234 |
-| APOTEKER | apoteker@klinik.com | Apoteker1234 |
-| KASIR | kasir@klinik.com | Kasir1234 |
-| PASIEN | pasien@klinik.com | Pasien1234 |
-
-> ⚠️ Change all credentials before deploying to production.
+| Super Admin | superadmin@klinik.com | SuperAdmin123 |
+| Dokter | dr.budi@klinik.com | Dokter1234 |
+| Apoteker | apoteker@klinik.com | Apoteker1234 |
+| Kasir | kasir@klinik.com | Kasir1234 |
+| Pasien | andi.wijaya@gmail.com | Pasien1234 |
 
 ---
 
-## Development Progress
+## CI/CD Pipeline
 
-| Phase | Feature | Status |
-|---|---|---|
-| Phase 1 | Project setup, Docker, Prisma, env config | ✅ Done |
-| Phase 2 | JWT Auth — Register, Login, Refresh, Logout | ✅ Done |
-| Phase 3 | Google OAuth2 | ✅ Done |
-| Phase 4 | RBAC + User Management + Seed Data | ✅ Done |
-| Phase 5 | Patient Management & Medical Records | ✅ Done |
-| Phase 6 | Doctor Profiles, Appointments & Queue | ⏳ Pending |
-| Phase 7 | Medicine Inventory & Stock | ⏳ Pending |
-| Phase 8 | Prescriptions & Dispensing | ⏳ Pending |
-| Phase 9 | Billing & Invoice | ⏳ Pending |
-| Phase 10 | Rate Limiting, Swagger Docs, Testing, Deploy | ⏳ Pending |
+```
+Push ke main/develop
+        ↓
+GitHub Actions — Run Tests
+  • Setup PostgreSQL 16 + Redis 7
+  • npm ci
+  • prisma migrate deploy
+  • Jest tests + coverage
+        ↓ (main only, tests pass)
+Railway — Auto Deploy
+  • Build Docker image
+  • prisma migrate deploy
+  • Start server
+```
+
+---
+
+## Architecture Decisions
+
+**Layered Architecture** — setiap modul menggunakan pola `routes → validator → controller → service` untuk separation of concerns yang jelas.
+
+**Two-stage billing** — billing dibuat saat appointment selesai dengan tarif konsultasi, kemudian diupdate dengan biaya obat setelah dispensing resep. Ini mencerminkan alur kerja klinik yang sesungguhnya.
+
+**Prescription state machine** — resep melewati status `MENUNGGU → DIPROSES → SELESAI/DIAMBIL_SEBAGIAN/TIDAK_DIAMBIL` dengan validasi transisi yang ketat, mencegah operasi yang tidak valid.
+
+**Void approval workflow** — pembatalan pembayaran memerlukan persetujuan admin/super admin untuk menjaga integritas keuangan.
+
+**Redis untuk rate limiting** — menggunakan Redis sebagai store untuk rate limiting memungkinkan konsistensi di multiple instance (production-ready untuk horizontal scaling).
 
 ---
 
 ## License
 
-MIT © 2025 — Built with ❤️ for local clinics in Indonesia
+MIT
