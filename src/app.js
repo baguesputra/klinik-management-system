@@ -200,25 +200,19 @@ app.get('/redoc', redoc({
   },
 }));
 
-// Backward compatibility redirect
-app.use('/api/auth', (req, res) => res.redirect(301, `/api/v1/auth${req.path}`));
-app.use('/api/users', (req, res) => res.redirect(301, `/api/v1/users${req.path}`));
-app.use('/api/patients', (req, res) => res.redirect(301, `/api/v1/patients${req.path}`));
-app.use('/api/doctors', (req, res) => res.redirect(301, `/api/v1/doctors${req.path}`));
-app.use('/api/appointments', (req, res) => res.redirect(301, `/api/v1/appointments${req.path}`));
-app.use('/api/medicines', (req, res) => res.redirect(301, `/api/v1/medicines${req.path}`));
-app.use('/api/prescriptions', (req, res) => res.redirect(301, `/api/v1/prescriptions${req.path}`));
-app.use('/api/billings', (req, res) => res.redirect(301, `/api/v1/billings${req.path}`));
+// API v1 Routes
+const v1Router = express.Router();
 
-// Routes
-app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/users', usersRoutes);
-app.use('/api/v1/patients', patientsRoutes);
-app.use('/api/v1/doctors', doctorsRoutes);
-app.use('/api/v1/appointments', appointmentsRoutes);
-app.use('/api/v1/medicines', medicinesRoutes);
-app.use('/api/v1/prescriptions', prescriptionsRoutes);
-app.use('/api/v1/billings', billingsRoutes);
+v1Router.use('/auth', authRoutes);
+v1Router.use('/users', usersRoutes);
+v1Router.use('/patients', patientsRoutes);
+v1Router.use('/doctors', doctorsRoutes);
+v1Router.use('/appointments', appointmentsRoutes);
+v1Router.use('/medicines', medicinesRoutes);
+v1Router.use('/prescriptions', prescriptionsRoutes);
+v1Router.use('/billings', billingsRoutes);
+
+app.use('/api/v1', v1Router);
 
 
 // 404 handler
