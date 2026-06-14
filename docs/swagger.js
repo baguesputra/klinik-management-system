@@ -109,12 +109,12 @@ Paginated responses include an additional \`pagination\` field:
   },
   servers: [
     {
-      url: 'http://localhost:3000',
-      description: 'Development server',
+      url: `${process.env.APP_URL}/api/v1`,
+      description: 'Production server',
     },
     {
-      url: 'https://klinik-api.railway.app',
-      description: 'Production server',
+      url: `http://localhost:${process.env.PORT || 3000}/api/v1`,
+      description: 'Local development',
     },
   ],
   tags: [
