@@ -73,10 +73,10 @@ beforeEach(async () => {
 });
 
   // ── Create Billing ──────────────────────────────────
-  describe('POST /api/billings', () => {
+  describe('POST /api/v1/billings', () => {
     it('should create billing successfully', async () => {
       const res = await request(app)
-        .post('/api/billings')
+        .post('/api/v1/billings')
         .set(getAuthHeader(kasir))
         .send({
           appointmentId: appointment.id,
@@ -100,7 +100,7 @@ beforeEach(async () => {
       });
 
       const res = await request(app)
-        .post('/api/billings')
+        .post('/api/v1/billings')
         .set(getAuthHeader(kasir))
         .send({
           appointmentId: pendingAppointment.id,
@@ -121,7 +121,7 @@ beforeEach(async () => {
       await createBilling({ appointmentId: newAppointment.id });
 
       const res = await request(app)
-        .post('/api/billings')
+        .post('/api/v1/billings')
         .set(getAuthHeader(kasir))
         .send({
           appointmentId: newAppointment.id,
@@ -139,7 +139,7 @@ beforeEach(async () => {
       });
 
       const res = await request(app)
-        .post('/api/billings')
+        .post('/api/v1/billings')
         .set(getAuthHeader(pasien))
         .send({
           appointmentId: newAppointment.id,
@@ -157,7 +157,7 @@ beforeEach(async () => {
       });
 
       const res = await request(app)
-        .post('/api/billings')
+        .post('/api/v1/billings')
         .set(getAuthHeader(kasir))
         .send({
           appointmentId: newAppointment.id,
@@ -174,7 +174,7 @@ beforeEach(async () => {
   });
 
   // ── Get Billing ─────────────────────────────────────
-  describe('GET /api/billings/:id', () => {
+  describe('GET /api/v1/billings/:id', () => {
     it('should return billing detail', async () => {
       const newAppointment = await createAppointment({
         patientId: patient.id,
@@ -184,7 +184,7 @@ beforeEach(async () => {
       const billing = await createBilling({ appointmentId: newAppointment.id });
 
       const res = await request(app)
-        .get(`/api/billings/${billing.id}`)
+        .get(`/api/v1/billings/${billing.id}`)
         .set(getAuthHeader(kasir));
 
       expect(res.status).toBe(200);
@@ -195,7 +195,7 @@ beforeEach(async () => {
 
     it('should return 404 for non-existent billing', async () => {
       const res = await request(app)
-        .get('/api/billings/00000000-0000-0000-0000-000000000000')
+        .get('/api/v1/billings/00000000-0000-0000-0000-000000000000')
         .set(getAuthHeader(kasir));
 
       expect(res.status).toBe(404);
@@ -203,7 +203,7 @@ beforeEach(async () => {
   });
 
   // ── Update Medicine Fee ──────────────────────────────
-  describe('PATCH /api/billings/:id/medicine-fee', () => {
+  describe('PATCH /api/v1/billings/:id/medicine-fee', () => {
     it('should update medicine fee and recalculate total', async () => {
       const newAppointment = await createAppointment({
         patientId: patient.id,
@@ -217,7 +217,7 @@ beforeEach(async () => {
       });
 
       const res = await request(app)
-        .patch(`/api/billings/${billing.id}/medicine-fee`)
+        .patch(`/api/v1/billings/${billing.id}/medicine-fee`)
         .set(getAuthHeader(kasir))
         .send({ medicineFee: 75000 });
 
@@ -239,7 +239,7 @@ beforeEach(async () => {
       });
 
       const res = await request(app)
-        .patch(`/api/billings/${billing.id}/medicine-fee`)
+        .patch(`/api/v1/billings/${billing.id}/medicine-fee`)
         .set(getAuthHeader(kasir))
         .send({ medicineFee: 75000 });
 
@@ -248,7 +248,7 @@ beforeEach(async () => {
   });
 
   // ── Add Payment ──────────────────────────────────────
-  describe('POST /api/billings/:id/payments', () => {
+  describe('POST /api/v1/billings/:id/payments', () => {
     it('should record cash payment successfully', async () => {
       const newAppointment = await createAppointment({
         patientId: patient.id,
@@ -262,7 +262,7 @@ beforeEach(async () => {
       });
 
       const res = await request(app)
-        .post(`/api/billings/${billing.id}/payments`)
+        .post(`/api/v1/billings/${billing.id}/payments`)
         .set(getAuthHeader(kasir))
         .send({
           amount: 150000,
@@ -289,7 +289,7 @@ beforeEach(async () => {
       });
 
       const res = await request(app)
-        .post(`/api/billings/${billing.id}/payments`)
+        .post(`/api/v1/billings/${billing.id}/payments`)
         .set(getAuthHeader(kasir))
         .send({
           amount: 75000,
@@ -314,7 +314,7 @@ beforeEach(async () => {
       });
 
       const res = await request(app)
-        .post(`/api/billings/${billing.id}/payments`)
+        .post(`/api/v1/billings/${billing.id}/payments`)
         .set(getAuthHeader(kasir))
         .send({
           amount: 150000,
@@ -337,7 +337,7 @@ beforeEach(async () => {
       });
 
       const res = await request(app)
-        .post(`/api/billings/${billing.id}/payments`)
+        .post(`/api/v1/billings/${billing.id}/payments`)
         .set(getAuthHeader(kasir))
         .send({
           amount: 999999,
@@ -363,7 +363,7 @@ beforeEach(async () => {
       });
 
       const res = await request(app)
-        .post(`/api/billings/${billing.id}/payments`)
+        .post(`/api/v1/billings/${billing.id}/payments`)
         .set(getAuthHeader(kasir))
         .send({
           amount: 50000,
@@ -376,7 +376,7 @@ beforeEach(async () => {
   });
 
   // ── Void Request ─────────────────────────────────────
-  describe('POST /api/billings/:id/payments/:paymentId/void', () => {
+  describe('POST /api/v1/billings/:id/payments/:paymentId/void', () => {
     it('should submit void request successfully', async () => {
       const newAppointment = await createAppointment({
         patientId: patient.id,
@@ -389,14 +389,14 @@ beforeEach(async () => {
       });
 
       const paymentRes = await request(app)
-        .post(`/api/billings/${billing.id}/payments`)
+        .post(`/api/v1/billings/${billing.id}/payments`)
         .set(getAuthHeader(kasir))
         .send({ amount: 150000, amountPaid: 150000, method: 'TUNAI' });
 
       const paymentId = paymentRes.body.data.payment.id;
 
       const res = await request(app)
-        .post(`/api/billings/${billing.id}/payments/${paymentId}/void`)
+        .post(`/api/v1/billings/${billing.id}/payments/${paymentId}/void`)
         .set(getAuthHeader(kasir))
         .send({ reason: 'Salah input metode pembayaran, seharusnya QRIS' });
 
@@ -416,7 +416,7 @@ beforeEach(async () => {
       });
 
       const paymentRes = await request(app)
-        .post(`/api/billings/${billing.id}/payments`)
+        .post(`/api/v1/billings/${billing.id}/payments`)
         .set(getAuthHeader(kasir))
         .send({ amount: 150000, amountPaid: 150000, method: 'TUNAI' });
 
@@ -424,7 +424,7 @@ beforeEach(async () => {
       const otherKasir = await createUser({ role: 'KASIR' });
 
       const res = await request(app)
-        .post(`/api/billings/${billing.id}/payments/${paymentId}/void`)
+        .post(`/api/v1/billings/${billing.id}/payments/${paymentId}/void`)
         .set(getAuthHeader(otherKasir))
         .send({ reason: 'Coba void payment orang lain' });
 
@@ -433,7 +433,7 @@ beforeEach(async () => {
   });
 
   // ── Review Void ──────────────────────────────────────
-  describe('PATCH /api/billings/:id/payments/:paymentId/void', () => {
+  describe('PATCH /api/v1/billings/:id/payments/:paymentId/void', () => {
     it('should approve void request and rollback paidAmount', async () => {
       const newAppointment = await createAppointment({
         patientId: patient.id,
@@ -446,19 +446,19 @@ beforeEach(async () => {
       });
 
       const paymentRes = await request(app)
-        .post(`/api/billings/${billing.id}/payments`)
+        .post(`/api/v1/billings/${billing.id}/payments`)
         .set(getAuthHeader(kasir))
         .send({ amount: 150000, amountPaid: 150000, method: 'TUNAI' });
 
       const paymentId = paymentRes.body.data.payment.id;
 
       await request(app)
-        .post(`/api/billings/${billing.id}/payments/${paymentId}/void`)
+        .post(`/api/v1/billings/${billing.id}/payments/${paymentId}/void`)
         .set(getAuthHeader(kasir))
         .send({ reason: 'Salah input metode pembayaran' });
 
       const res = await request(app)
-        .patch(`/api/billings/${billing.id}/payments/${paymentId}/void`)
+        .patch(`/api/v1/billings/${billing.id}/payments/${paymentId}/void`)
         .set(getAuthHeader(superAdmin))
         .send({ status: 'APPROVED', reviewNotes: 'Dikonfirmasi oleh admin' });
 
@@ -466,7 +466,7 @@ beforeEach(async () => {
       expect(res.body.data).toHaveProperty('status', 'APPROVED');
 
       const billingRes = await request(app)
-        .get(`/api/billings/${billing.id}`)
+        .get(`/api/v1/billings/${billing.id}`)
         .set(getAuthHeader(superAdmin));
 
       expect(Number(billingRes.body.data.paidAmount)).toBe(0);
@@ -485,19 +485,19 @@ beforeEach(async () => {
       });
 
       const paymentRes = await request(app)
-        .post(`/api/billings/${billing.id}/payments`)
+        .post(`/api/v1/billings/${billing.id}/payments`)
         .set(getAuthHeader(kasir))
         .send({ amount: 150000, amountPaid: 150000, method: 'TUNAI' });
 
       const paymentId = paymentRes.body.data.payment.id;
 
       await request(app)
-        .post(`/api/billings/${billing.id}/payments/${paymentId}/void`)
+        .post(`/api/v1/billings/${billing.id}/payments/${paymentId}/void`)
         .set(getAuthHeader(kasir))
         .send({ reason: 'Test rejection' });
 
       const res = await request(app)
-        .patch(`/api/billings/${billing.id}/payments/${paymentId}/void`)
+        .patch(`/api/v1/billings/${billing.id}/payments/${paymentId}/void`)
         .set(getAuthHeader(superAdmin))
         .send({ status: 'REJECTED', reviewNotes: 'Tidak valid, payment sudah benar' });
 
@@ -505,7 +505,7 @@ beforeEach(async () => {
       expect(res.body.data).toHaveProperty('status', 'REJECTED');
 
       const billingRes = await request(app)
-        .get(`/api/billings/${billing.id}`)
+        .get(`/api/v1/billings/${billing.id}`)
         .set(getAuthHeader(superAdmin));
 
       expect(Number(billingRes.body.data.paidAmount)).toBe(150000);
@@ -513,10 +513,10 @@ beforeEach(async () => {
   });
 
   // ── Daily Report ─────────────────────────────────────
-  describe('GET /api/billings/report/daily', () => {
+  describe('GET /api/v1/billings/report/daily', () => {
     it('should return daily report', async () => {
       const res = await request(app)
-        .get('/api/billings/report/daily')
+        .get('/api/v1/billings/report/daily')
         .set(getAuthHeader(kasir));
 
       expect(res.status).toBe(200);
@@ -528,7 +528,7 @@ beforeEach(async () => {
 
     it('should return 403 if accessed by PASIEN', async () => {
       const res = await request(app)
-        .get('/api/billings/report/daily')
+        .get('/api/v1/billings/report/daily')
         .set(getAuthHeader(pasien));
 
       expect(res.status).toBe(403);
@@ -536,10 +536,10 @@ beforeEach(async () => {
   });
 
   // ── Monthly Report ───────────────────────────────────
-  describe('GET /api/billings/report/monthly', () => {
+  describe('GET /api/v1/billings/report/monthly', () => {
     it('should return monthly report with byDay aggregation', async () => {
       const res = await request(app)
-        .get('/api/billings/report/monthly')
+        .get('/api/v1/billings/report/monthly')
         .query({ month: new Date().toISOString().slice(0, 7) })
         .set(getAuthHeader(kasir));
 
@@ -552,10 +552,10 @@ beforeEach(async () => {
   });
 
   // ── My Billings (PASIEN) ─────────────────────────────
-  describe('GET /api/billings/my', () => {
+  describe('GET /api/v1/billings/my', () => {
     it('should return own billings for PASIEN', async () => {
       const res = await request(app)
-        .get('/api/billings/my')
+        .get('/api/v1/billings/my')
         .set(getAuthHeader(pasien));
 
       expect(res.status).toBe(200);
@@ -565,7 +565,7 @@ beforeEach(async () => {
 
     it('should return 403 if accessed by KASIR', async () => {
       const res = await request(app)
-        .get('/api/billings/my')
+        .get('/api/v1/billings/my')
         .set(getAuthHeader(kasir));
 
       expect(res.status).toBe(403);

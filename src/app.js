@@ -20,7 +20,8 @@ import { swaggerSpec } from '../docs/swagger.js';
 import redoc from 'redoc-express';
 
 const app = express();
-
+// Trust proxy — wajib untuk Railway/Render/platform lain di balik reverse proxy
+app.set('trust proxy', 1);
 // Security & utilities
 app.use(helmet({
   contentSecurityPolicy: {
@@ -199,15 +200,19 @@ app.get('/redoc', redoc({
   },
 }));
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/patients', patientsRoutes);
-app.use('/api/doctors', doctorsRoutes);
-app.use('/api/appointments', appointmentsRoutes);
-app.use('/api/medicines', medicinesRoutes);
-app.use('/api/prescriptions', prescriptionsRoutes);
-app.use('/api/billings', billingsRoutes);
+// API v1 Routes
+const v1Router = express.Router();
+
+v1Router.use('/auth', authRoutes);
+v1Router.use('/users', usersRoutes);
+v1Router.use('/patients', patientsRoutes);
+v1Router.use('/doctors', doctorsRoutes);
+v1Router.use('/appointments', appointmentsRoutes);
+v1Router.use('/medicines', medicinesRoutes);
+v1Router.use('/prescriptions', prescriptionsRoutes);
+v1Router.use('/billings', billingsRoutes);
+
+app.use('/api/v1', v1Router);
 
 
 // 404 handler

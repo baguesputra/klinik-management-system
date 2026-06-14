@@ -10,6 +10,8 @@ COPY . .
 
 RUN npx prisma generate
 
+RUN chmod +x scripts/start.sh
+
 EXPOSE ${PORT}
 
-CMD ["node", "server.js"]
+CMD ["sh", "scripts/start.sh"]

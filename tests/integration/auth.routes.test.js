@@ -19,10 +19,10 @@ beforeEach(async () => {
 });
 
   // ── Register ─────────────────────────────────────────
-  describe('POST /api/auth/register', () => {
+  describe('POST /api/v1/auth/register', () => {
     it('should register a new user successfully', async () => {
       const res = await request(app)
-        .post('/api/auth/register')
+        .post('/api/v1/auth/register')
         .send({
           name: 'New User',
           email: 'newuser@example.com',
@@ -38,7 +38,7 @@ beforeEach(async () => {
 
     it('should return 400 for invalid email format', async () => {
       const res = await request(app)
-        .post('/api/auth/register')
+        .post('/api/v1/auth/register')
         .send({
           name: 'New User',
           email: 'invalid-email',
@@ -52,7 +52,7 @@ beforeEach(async () => {
 
     it('should return 400 for weak password', async () => {
       const res = await request(app)
-        .post('/api/auth/register')
+        .post('/api/v1/auth/register')
         .send({
           name: 'New User',
           email: 'newuser@example.com',
@@ -67,7 +67,7 @@ beforeEach(async () => {
       await createUser({ email: 'existing@example.com' });
 
       const res = await request(app)
-        .post('/api/auth/register')
+        .post('/api/v1/auth/register')
         .send({
           name: 'Another User',
           email: 'existing@example.com',
@@ -81,7 +81,7 @@ beforeEach(async () => {
   });
 
   // ── Login ─────────────────────────────────────────────
-  describe('POST /api/auth/login', () => {
+  describe('POST /api/v1/auth/login', () => {
     it('should login successfully and return tokens', async () => {
       await createUser({
         email: 'login@example.com',
@@ -89,7 +89,7 @@ beforeEach(async () => {
       });
 
       const res = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: 'login@example.com',
           password: 'LoginPass123',
@@ -112,7 +112,7 @@ beforeEach(async () => {
       });
 
       const res = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: 'login2@example.com',
           password: 'WrongPass123',
@@ -124,7 +124,7 @@ beforeEach(async () => {
 
     it('should return 401 for non-existent email', async () => {
       const res = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: 'notfound@example.com',
           password: 'SomePass123',
@@ -143,7 +143,7 @@ beforeEach(async () => {
       });
 
       const res = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: 'inactive@example.com',
           password: 'InactivePass123',
@@ -154,13 +154,13 @@ beforeEach(async () => {
   });
 
   // ── Get Me ────────────────────────────────────────────
-  describe('GET /api/auth/me', () => {
+  describe('GET /api/v1/auth/me', () => {
     it('should return current user profile', async () => {
       const user = await createUser({ email: 'me@example.com' });
       const token = getAuthToken(user);
 
       const res = await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
@@ -170,14 +170,14 @@ beforeEach(async () => {
     });
 
     it('should return 401 without token', async () => {
-      const res = await request(app).get('/api/auth/me');
+      const res = await request(app).get('/api/v1/auth/me');
 
       expect(res.status).toBe(401);
     });
 
     it('should return 401 with invalid token', async () => {
       const res = await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', 'Bearer invalid-token');
 
       expect(res.status).toBe(401);
@@ -185,7 +185,7 @@ beforeEach(async () => {
   });
 
   // ── Refresh Token ─────────────────────────────────────
-  describe('POST /api/auth/refresh', () => {
+  describe('POST /api/v1/auth/refresh', () => {
     it('should return new tokens with valid refresh token', async () => {
       // Login dulu untuk dapat refresh token
       const user = await createUser({
@@ -194,7 +194,7 @@ beforeEach(async () => {
       });
 
       const loginRes = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: 'refresh@example.com',
           password: 'RefreshPass123',
@@ -203,7 +203,7 @@ beforeEach(async () => {
       const { refreshToken } = loginRes.body.data;
 
       const res = await request(app)
-        .post('/api/auth/refresh')
+        .post('/api/v1/auth/refresh')
         .send({ refreshToken });
 
       expect(res.status).toBe(200);
@@ -213,7 +213,7 @@ beforeEach(async () => {
 
     it('should return 401 with invalid refresh token', async () => {
       const res = await request(app)
-        .post('/api/auth/refresh')
+        .post('/api/v1/auth/refresh')
         .send({ refreshToken: 'invalid-token' });
 
       expect(res.status).toBe(401);
@@ -221,7 +221,7 @@ beforeEach(async () => {
   });
 
   // ── Logout ────────────────────────────────────────────
-  describe('POST /api/auth/logout', () => {
+  describe('POST /api/v1/auth/logout', () => {
     it('should logout successfully and blacklist token', async () => {
       const user = await createUser({
         email: 'logout@example.com',
@@ -229,7 +229,7 @@ beforeEach(async () => {
       });
 
       const loginRes = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: 'logout@example.com',
           password: 'LogoutPass123',
@@ -238,14 +238,14 @@ beforeEach(async () => {
       const { accessToken } = loginRes.body.data;
 
       const logoutRes = await request(app)
-        .post('/api/auth/logout')
+        .post('/api/v1/auth/logout')
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(logoutRes.status).toBe(200);
 
       // Token harus sudah di-blacklist
       const meRes = await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(meRes.status).toBe(401);
@@ -260,7 +260,7 @@ beforeEach(async () => {
 
       // PASIEN tidak bisa akses endpoint users
       const res = await request(app)
-        .get('/api/users')
+        .get('/api/v1/users')
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(403);
@@ -271,7 +271,7 @@ beforeEach(async () => {
       const token = getAuthToken(superAdmin);
 
       const res = await request(app)
-        .get('/api/users')
+        .get('/api/v1/users')
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);

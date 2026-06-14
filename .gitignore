@@ -7,7 +7,7 @@ node_modules/
 .env.production
 
 # Prisma
-prisma/migrations/
+
 
 # Logs
 logs/
